@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual env
+.venv/
+venv/
+
+# Test / tooling caches
+.pytest_cache/
+.ipynb_checkpoints/
+.coverage
+
+# Data + models + generated site (kept out of git; rebuilt from scripts / Colab)
+data/*
+!data/.gitkeep
+models/
+reports/site/
+# Non-representative local CPU smoke metrics (only baseline.json + GPU herbert.json are committed)
+reports/metrics/herbert_smoke.json
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

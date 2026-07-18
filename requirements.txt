@@ -1,0 +1,4 @@
+# Install the project in editable mode with dev extras (pytest, httpx, jupyterlab).
+# Runtime deps are declared in pyproject.toml. For the HerBERT fine-tuning path also install
+# the heavy transformer extra:  pip install -e .[dev,transformer]
+-e .[dev]
