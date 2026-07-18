@@ -8,6 +8,7 @@ analysis uses aggregate stats plus *illustrative* sentences written here (not da
 from __future__ import annotations
 
 import base64
+import html
 import io
 import json
 from datetime import date
@@ -65,10 +66,14 @@ def _fmt(metrics: Optional[dict], key: str) -> str:
 
 
 def _per_class_rows(metrics: dict) -> str:
+    # Everything interpolated into HTML is escaped. Inputs are trusted today (numbers + config
+    # label names), but the report must never embed dataset text, and escaping keeps a future
+    # data change from turning into stored XSS on GitHub Pages.
     rows = ""
     for cls in metrics["per_class"]:
+        label = html.escape(str(cls["label"]))
         rows += (
-            f"<tr><td>{cls['label']}</td><td>{cls['precision']:.3f}</td>"
+            f"<tr><td>{label}</td><td>{cls['precision']:.3f}</td>"
             f"<td>{cls['recall']:.3f}</td><td>{cls['f1']:.3f}</td><td>{cls['support']}</td></tr>"
         )
     return rows
@@ -98,10 +103,11 @@ def generate_report(
         per_class = '<tr><td colspan="5"><em>no metrics yet</em></td></tr>'
 
     illustrative = "".join(
-        f"<li><code>{text}</code> — {why}</li>" for text, why in _ILLUSTRATIVE_ERRORS
+        f"<li><code>{html.escape(text)}</code> — {html.escape(why)}</li>"
+        for text, why in _ILLUSTRATIVE_ERRORS
     )
 
-    html = f"""<!doctype html>
+    page = f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -168,7 +174,7 @@ def generate_report(
 </html>
 """
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(html, encoding="utf-8")
+    output_path.write_text(page, encoding="utf-8")
     return output_path
 
 

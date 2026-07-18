@@ -78,6 +78,10 @@ python -m pl_review_sense.herbert --smoke   # tiny CPU run that only validates t
   accuracy but low macro-F1).
 - **Three classes**: `ambiguous` is dropped (documented), never merged into another class.
 - **No leakage**: the TF-IDF vectorizer is fit inside a `Pipeline` on the training fold only.
+- **Validation held out**: hyperparameters are fixed config defaults — the `validation` split is
+  intentionally not tuned against, so the test metrics stay an honest estimate.
+- **Pinned dataset**: PolEmo is loaded at a fixed revision, so `trust_remote_code` runs an
+  audited script rather than whatever upstream HEAD happens to be.
 - **Honest compute cost**: the baseline trains in seconds on a CPU; HerBERT needs a GPU and
   minutes per epoch — reported alongside the accuracy so the trade-off is explicit.
 - **Error analysis**: negation and sarcasm (double negatives, contrastive clauses) are where a

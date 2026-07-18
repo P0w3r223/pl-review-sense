@@ -6,13 +6,10 @@ from pathlib import Path
 
 # --- Paths -------------------------------------------------------------------
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = PROJECT_ROOT / "data"
 MODELS_DIR = PROJECT_ROOT / "models"
 REPORTS_DIR = PROJECT_ROOT / "reports"
 METRICS_DIR = REPORTS_DIR / "metrics"
 PREDICTIONS_DIR = REPORTS_DIR / "predictions"
-FIGURES_DIR = REPORTS_DIR / "figures"
-SITE_DIR = REPORTS_DIR / "site"
 
 BASELINE_MODEL_PATH = MODELS_DIR / "baseline_tfidf_logreg.joblib"
 BASELINE_METRICS_PATH = METRICS_DIR / "baseline.json"
@@ -26,6 +23,9 @@ BASELINE_PREDICTIONS_PATH = PREDICTIONS_DIR / "baseline_test.json"
 DATASET = "clarin-pl/polemo2-official"
 DATASET_CONFIG = "all_text"  # full reviews across all four domains
 TRUST_REMOTE_CODE = True
+# Pin to a known-good commit so trust_remote_code executes an audited script, not whatever
+# happens to be the upstream HEAD at download time.
+DATASET_REVISION = "802e35d2b12bae84bb07911d841e8f046dc2fcef"
 TEXT_COLUMN = "text"
 TARGET_COLUMN = "target"
 DROP_LABEL_NAME = "amb"

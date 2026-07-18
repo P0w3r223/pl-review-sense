@@ -58,7 +58,10 @@ def load_polemo() -> Dataset:
     from datasets import load_dataset
 
     raw = load_dataset(
-        config.DATASET, config.DATASET_CONFIG, trust_remote_code=config.TRUST_REMOTE_CODE
+        config.DATASET,
+        config.DATASET_CONFIG,
+        revision=config.DATASET_REVISION,
+        trust_remote_code=config.TRUST_REMOTE_CODE,
     )
     splits = {}
     for name in ("train", "validation", "test"):
@@ -66,4 +69,14 @@ def load_polemo() -> Dataset:
         int2str = part.features[config.TARGET_COLUMN].int2str
         target_names = [int2str(t) for t in part[config.TARGET_COLUMN]]
         splits[name] = to_split(part[config.TEXT_COLUMN], target_names)
-    return Dataset(splits["train"], splits["validation"], splits["test"])
+
+    dataset = Dataset(splits["train"], splits["validation"], splits["test"])
+    # Fail loudly at the data boundary if the mapping produced nothing or the wrong labels
+    # (e.g. upstream renamed the classes), instead of a confusing model error much later.
+    expected = set(range(len(config.LABEL_NAMES)))
+    if len(dataset.train) == 0 or set(dataset.train.labels) != expected:
+        raise ValueError(
+            f"PolEmo label mapping yielded {sorted(set(dataset.train.labels))}; "
+            f"expected {sorted(expected)} — check the dataset revision/label names."
+        )
+    return dataset

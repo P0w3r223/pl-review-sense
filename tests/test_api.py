@@ -41,3 +41,8 @@ def test_predict_rejects_empty_text(monkeypatch):
 
 def test_predict_requires_text_field():
     assert client.post("/predict", json={}).status_code == 422
+
+
+def test_predict_rejects_too_long_text(monkeypatch):
+    monkeypatch.setitem(_state, "model", _FakeModel())
+    assert client.post("/predict", json={"text": "a" * 5001}).status_code == 422

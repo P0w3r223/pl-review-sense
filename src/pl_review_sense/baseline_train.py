@@ -38,6 +38,8 @@ def _write_predictions(y_true, y_pred) -> None:
 
 def main() -> None:
     data = load_polemo()
+    # Hyperparameters are fixed config defaults; the validation split is intentionally held out
+    # (not tuned against), so the test metrics remain an honest, leakage-free estimate.
     print(f"loaded PolEmo: train={len(data.train)} val={len(data.validation)} test={len(data.test)}")
 
     pipe = baseline.train(data.train.texts, data.train.labels)

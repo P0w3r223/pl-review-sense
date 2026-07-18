@@ -23,3 +23,30 @@ def test_full_args_follow_config():
 def test_parser_smoke_flag():
     assert herbert.build_parser().parse_args(["--smoke"]).smoke is True
     assert herbert.build_parser().parse_args([]).smoke is False
+
+
+def test_write_metrics_representative_becomes_headline(tmp_path, monkeypatch):
+    import json
+
+    from pl_review_sense import evaluate
+
+    monkeypatch.setattr(config, "METRICS_DIR", tmp_path)
+    monkeypatch.setattr(config, "HERBERT_METRICS_PATH", tmp_path / "herbert.json")
+    result = evaluate.evaluate([0, 1, 2], [0, 1, 2])
+
+    herbert.write_metrics(result, "full", representative=True)
+    assert (tmp_path / "herbert.json").exists()
+    assert not (tmp_path / "herbert_smoke.json").exists()
+    assert json.loads((tmp_path / "herbert.json").read_text(encoding="utf-8"))["representative"] is True
+
+
+def test_write_metrics_non_representative_goes_to_sidecar(tmp_path, monkeypatch):
+    from pl_review_sense import evaluate
+
+    monkeypatch.setattr(config, "METRICS_DIR", tmp_path)
+    monkeypatch.setattr(config, "HERBERT_METRICS_PATH", tmp_path / "herbert.json")
+    result = evaluate.evaluate([0, 1, 2], [0, 1, 2])
+
+    herbert.write_metrics(result, "smoke", representative=False)
+    assert (tmp_path / "herbert_smoke.json").exists()
+    assert not (tmp_path / "herbert.json").exists()

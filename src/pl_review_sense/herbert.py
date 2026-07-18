@@ -78,7 +78,14 @@ def fine_tune(data: Dataset, args: TrainArgs) -> Tuple[evaluate.EvalResult, List
 
     train_split = data.train
     if args.subset is not None:
-        train_split = Split(train_split.texts[: args.subset], train_split.labels[: args.subset])
+        # A seeded random subset (not the first N, which are domain-ordered and class-skewed).
+        import random
+
+        rng = random.Random(config.RANDOM_STATE)
+        idx = list(range(len(train_split.labels)))
+        rng.shuffle(idx)
+        idx = idx[: args.subset]
+        train_split = Split([train_split.texts[i] for i in idx], [train_split.labels[i] for i in idx])
 
     tokenizer = AutoTokenizer.from_pretrained(config.HERBERT_MODEL)
 
@@ -119,9 +126,9 @@ def fine_tune(data: Dataset, args: TrainArgs) -> Tuple[evaluate.EvalResult, List
     return evaluate.evaluate(data.test.labels, y_pred), y_pred
 
 
-def write_metrics(result: evaluate.EvalResult, run: str) -> None:
-    """Write HerBERT metrics. A representative GPU run -> herbert.json; smoke -> herbert_smoke.json."""
-    representative = run == "gpu"
+def write_metrics(result: evaluate.EvalResult, run: str, representative: bool) -> None:
+    """Write HerBERT metrics. Only a representative run becomes the headline ``herbert.json``;
+    anything else (a smoke run, or a full run without a GPU) goes to ``herbert_smoke.json``."""
     payload = {
         "model": "herbert",
         "run": run,
@@ -151,14 +158,22 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv=None) -> None:
     args = build_parser().parse_args(argv)
     train_args = smoke_args() if args.smoke else full_args()
-    run = "cpu-smoke" if args.smoke else "gpu"
+    run = "smoke" if args.smoke else "full"
 
     data = load_polemo()
     result, _ = fine_tune(data, train_args)
+
+    # "Representative" means a real full run on a GPU — never merely "no --smoke flag". A full
+    # run on CPU is just as unrepresentative as the smoke run, so it must not become the headline.
+    import torch
+
+    representative = (not args.smoke) and torch.cuda.is_available()
+
     print(f"[{run}] accuracy={result.accuracy:.4f}  macro_f1={result.macro_f1:.4f}")
-    if args.smoke:
-        print("NOTE: smoke numbers are NOT representative — run notebooks/herbert_colab.ipynb on a GPU.")
-    write_metrics(result, "cpu-smoke" if args.smoke else "gpu")
+    if not representative:
+        print("NOTE: non-representative run (smoke or no GPU) — not written as the headline "
+              "result. Run notebooks/herbert_colab.ipynb on a GPU for real numbers.")
+    write_metrics(result, run, representative)
 
 
 if __name__ == "__main__":
