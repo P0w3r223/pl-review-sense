@@ -1,0 +1,50 @@
+{
+  "model": "tfidf+logreg",
+  "accuracy": 0.9400584795321637,
+  "macro_f1": 0.9439412539882738,
+  "per_class": [
+    {
+      "label": "negative",
+      "precision": 0.938953488372093,
+      "recall": 0.9528023598820059,
+      "f1": 0.9458272327964861,
+      "support": 339
+    },
+    {
+      "label": "neutral",
+      "precision": 0.9911504424778761,
+      "recall": 0.9491525423728814,
+      "f1": 0.9696969696969697,
+      "support": 118
+    },
+    {
+      "label": "positive",
+      "precision": 0.9162995594713657,
+      "recall": 0.9162995594713657,
+      "f1": 0.9162995594713657,
+      "support": 227
+    }
+  ],
+  "confusion": [
+    [
+      323,
+      0,
+      16
+    ],
+    [
+      3,
+      112,
+      3
+    ],
+    [
+      18,
+      1,
+      208
+    ]
+  ],
+  "labels": [
+    "negative",
+    "neutral",
+    "positive"
+  ]
+}
