@@ -17,6 +17,15 @@ from typing import Optional
 
 from . import config
 
+# --- Chart styling: clean matplotlib aligned with the page palette. ---
+_CHART_STYLE = {
+    "figure.facecolor": "white", "axes.facecolor": "white",
+    "axes.titlesize": 12, "axes.titleweight": "bold", "axes.titlecolor": "#1c2430",
+    "axes.titlepad": 12, "axes.labelcolor": "#667085", "axes.labelsize": 10,
+    "text.color": "#1c2430", "xtick.color": "#667085", "ytick.color": "#667085",
+    "xtick.labelsize": 10, "ytick.labelsize": 10, "font.size": 10,
+}
+
 # Illustrative phenomena (our own sentences, NOT from PolEmo) that challenge lexical models.
 _ILLUSTRATIVE_ERRORS = [
     ("Nie jest to zły produkt.", "double negation flips the sentiment a bag-of-words misses"),
@@ -40,18 +49,23 @@ def _confusion_png(confusion, labels) -> str:
     import matplotlib.pyplot as plt
     import numpy as np
 
+    plt.rcParams.update(_CHART_STYLE)
     cm = np.array(confusion)
-    fig, ax = plt.subplots(figsize=(4.2, 3.6))
+    fig, ax = plt.subplots(figsize=(4.6, 4.0))
     ax.imshow(cm, cmap="Blues")
     ax.set_xticks(range(len(labels)), labels=labels)
     ax.set_yticks(range(len(labels)), labels=labels)
     ax.set_xlabel("predicted")
     ax.set_ylabel("true")
+    ax.set_title("Confusion matrix — TF-IDF baseline")
+    ax.tick_params(length=0)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
     thresh = cm.max() / 2 if cm.size else 0
     for i in range(len(labels)):
         for j in range(len(labels)):
-            ax.text(j, i, str(cm[i][j]), ha="center", va="center",
-                    color="white" if cm[i][j] > thresh else "black")
+            ax.text(j, i, str(cm[i][j]), ha="center", va="center", fontsize=11,
+                    color="white" if cm[i][j] > thresh else "#1c2430")
     fig.tight_layout()
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=110)
@@ -113,10 +127,14 @@ def generate_report(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>pl-review-sense — TF-IDF vs HerBERT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  body {{ font: 16px/1.55 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  body {{ font: 16px/1.55 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+         -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
          max-width: 820px; margin: 0 auto; padding: 32px 20px 56px; color: #1c2430; }}
-  h1 {{ margin-bottom: 2px; }} .sub {{ color: #667085; margin-top: 0; }}
+  h1 {{ margin-bottom: 2px; font-weight: 700; letter-spacing: -0.01em; }} .sub {{ color: #667085; margin-top: 0; }}
   .card {{ border: 1px solid #e3e7ee; border-radius: 12px; padding: 18px 20px; margin: 18px 0; }}
   table {{ border-collapse: collapse; width: 100%; }}
   th, td {{ text-align: right; padding: 6px 10px; border-bottom: 1px solid #eef1f6; }}
