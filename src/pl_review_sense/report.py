@@ -155,11 +155,11 @@ def generate_report(
     <tr><td>TF-IDF + logistic regression</td><td>{_fmt(baseline_metrics, "accuracy")}</td><td>{_fmt(baseline_metrics, "macro_f1")}</td></tr>
     <tr><td>HerBERT (fine-tuned)</td><td>{_fmt(herbert_metrics, "accuracy")}</td><td>{_fmt(herbert_metrics, "macro_f1")}</td></tr>
   </table>
-  <p class="sub"><strong>Macro-F1</strong> is the headline metric because the classes are imbalanced.</p>
+  <p class="sub"><strong>Macro-F1</strong> is the primary metric because the classes are imbalanced.</p>
 </div>
 
 <div class="card">
-  <h2>Baseline — per class &amp; confusion</h2>
+  <h2>Baseline — per-class metrics and confusion matrix</h2>
   <table>
     <tr><th>class</th><th>precision</th><th>recall</th><th>F1</th><th>support</th></tr>
     {per_class}
@@ -168,18 +168,18 @@ def generate_report(
 </div>
 
 <div class="card">
-  <h2>Where models struggle (illustrative)</h2>
-  <p class="sub">Own examples of phenomena a bag-of-words model handles poorly — not PolEmo excerpts:</p>
+  <h2>Illustrative failure cases</h2>
+  <p class="sub">Constructed examples of phenomena a bag-of-words model handles poorly; these are not PolEmo excerpts:</p>
   <ul>{illustrative}</ul>
 </div>
 
 <div class="card">
-  <h2>Methodology &amp; honest compute cost</h2>
+  <h2>Methodology and compute cost</h2>
   <ul>
     <li>Three classes: PolEmo's <code>ambiguous</code> dropped; <code>minus/zero/plus</code> → negative/neutral/positive.</li>
     <li>No leakage: TF-IDF fit on train only (inside a Pipeline); untouched test split for metrics.</li>
-    <li><strong>Baseline</strong>: trains in seconds on a CPU — cheap, strong, interpretable.</li>
-    <li><strong>HerBERT</strong>: fine-tuned on a free Colab GPU (a few minutes/epoch); heavier for a marginal gain.</li>
+    <li><strong>Baseline</strong>: trains in seconds on a CPU; inexpensive, strong, and interpretable.</li>
+    <li><strong>HerBERT</strong>: fine-tuned on a free Colab GPU (a few minutes per epoch); more resource-intensive for a marginal gain.</li>
   </ul>
 </div>
 
