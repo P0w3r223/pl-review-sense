@@ -20,6 +20,25 @@ def test_full_args_follow_config():
     assert args.max_len == config.HERBERT_MAX_LEN
 
 
+def test_full_args_carry_the_effective_batch_the_optimizer_sees():
+    """Splitting the batch for a small card must not change the batch that reaches the step."""
+    args = herbert.full_args()
+
+    assert args.effective_batch == config.HERBERT_BATCH_SIZE * config.HERBERT_GRAD_ACCUM
+    assert args.grad_accum >= 1
+
+
+def test_a_split_batch_is_the_same_effective_batch_as_a_whole_one():
+    whole = herbert.TrainArgs(
+        epochs=4, batch_size=16, max_len=256, subset=None, output_dir="x", grad_accum=1
+    )
+    split = herbert.TrainArgs(
+        epochs=4, batch_size=8, max_len=256, subset=None, output_dir="x", grad_accum=2
+    )
+
+    assert whole.effective_batch == split.effective_batch == 16
+
+
 def test_parser_smoke_flag():
     assert herbert.build_parser().parse_args(["--smoke"]).smoke is True
     assert herbert.build_parser().parse_args([]).smoke is False

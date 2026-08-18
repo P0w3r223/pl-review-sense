@@ -1,0 +1,57 @@
+{
+  "model": "herbert",
+  "run": "full",
+  "representative": true,
+  "accuracy": 0.9853801169590644,
+  "macro_f1": 0.9859605104630896,
+  "per_class": [
+    {
+      "label": "negative",
+      "precision": 0.996996996996997,
+      "recall": 0.9793510324483776,
+      "f1": 0.9880952380952381,
+      "support": 339
+    },
+    {
+      "label": "neutral",
+      "precision": 0.9915254237288136,
+      "recall": 0.9915254237288136,
+      "f1": 0.9915254237288136,
+      "support": 118
+    },
+    {
+      "label": "positive",
+      "precision": 0.9656652360515021,
+      "recall": 0.9911894273127754,
+      "f1": 0.9782608695652174,
+      "support": 227
+    }
+  ],
+  "confusion": [
+    [
+      332,
+      0,
+      7
+    ],
+    [
+      0,
+      117,
+      1
+    ],
+    [
+      1,
+      1,
+      225
+    ]
+  ],
+  "labels": [
+    "negative",
+    "neutral",
+    "positive"
+  ],
+  "train_seconds": 2967.2,
+  "device": "GeForce GTX 1050",
+  "epochs": 4,
+  "effective_batch": 16,
+  "max_len": 256
+}

@@ -23,6 +23,9 @@ reports/site/
 # Non-representative local CPU smoke metrics (only baseline.json + GPU herbert.json are committed)
 reports/metrics/herbert_smoke.json
 
+# Claude Code: the session notes are shared work, the permission state is per-machine.
+.claude/settings.local.json
+
 # Editors / OS
 .vscode/
 .idea/

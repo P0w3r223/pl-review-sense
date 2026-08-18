@@ -16,6 +16,12 @@ never sees the test split. Three classes: negative, neutral, positive.
 Trained on PolEmo 2.0 (`all_text`, revision `802e35d2`), 5 264 reviews after dropping the
 `ambiguous` class. Seed 42.
 
+> **A fine-tuned HerBERT now exists for the same task and beats this model decisively** —
+> 0.986 macro-F1 against 0.944, ten errors on the test split against forty-one, *p* < 0.0001 on
+> the paired test. This card still describes the baseline, because the baseline is what the
+> API serves and what a cascade would put in front of the transformer. Read it as the cheap
+> half of a two-model system rather than as the recommended model.
+
 ## What it is for
 
 Classifying **long, written Polish product/service reviews** of the kind PolEmo collects —
@@ -65,6 +71,10 @@ confidence answered correctly every time. Its confidence therefore must not be r
 probability — but it *ranks* well, which is the property a deferral rule needs. Setting aside
 the least confident 10% of reviews raises macro-F1 on what remains from 0.944 to 0.974; the
 threshold at that point is 0.519.
+
+That ranking is what makes this model useful despite being beaten: routing the least-confident
+**20%** to HerBERT reaches 0.980 macro-F1 overall — 85% of what the transformer adds, with the
+GPU serving a fifth of the traffic.
 
 ## Cost
 

@@ -47,16 +47,23 @@ class equally, so a model must do well on the minority classes too. Logistic reg
   regression, inside a single `Pipeline` so the vectorizer is fit on the training fold only
   (no leakage). Cheap, interpretable, CPU-only; trains in seconds.
 - **HerBERT** — `allegro/herbert-base-cased` fine-tuned for sequence classification
-  (`num_labels=3`). Trained on a **free Colab GPU** (`notebooks/herbert_colab.ipynb`); the
+  (`num_labels=3`). Trained on a GPU — this project's run took 50 minutes on a 4 GB GTX 1050,
+  with the batch split 4×4 so the optimizer still steps on the configured 16 examples;
+  `notebooks/herbert_colab.ipynb` does the same on a free Colab card. The
   local `--smoke` mode fine-tunes on a tiny subset for one epoch only to validate the code path,
   and its numbers are never reported as the model's result.
 
 ## Honest compute cost
 
-The baseline is essentially free (seconds, CPU, a few MB model). HerBERT needs a GPU and
-minutes per epoch, and a ~0.5 GB checkpoint. On this text-level task the TF-IDF baseline is
-already strong (macro-F1 ≈ 0.94), so the comparison is as much about **cost vs marginal gain**
-as about raw accuracy — which is the point of the project.
+The baseline is essentially free (about 3 seconds on a CPU, a 3.2 MB model, thousands of
+reviews a second). HerBERT took **50 minutes on a 4 GB GTX 1050** for four epochs over the same
+5 264 reviews — roughly 850× the training time — and it wants that card to serve as well as to
+train.
+
+So the comparison is not "is the transformer better" (it is: 0.986 against 0.944, four times
+fewer errors, *p* < 0.0001) but **what the difference costs and whether all of it must be
+paid**. The cascade section is the answer to the second half: most of the gain is available for
+a fifth of the GPU traffic.
 
 ## Uncertainty and comparison
 
@@ -71,6 +78,10 @@ tools, answering two different questions:
   cannot settle: a model right on every review the other misses is distinguishable long before
   the intervals come apart. The exact binomial form rather than the chi-square approximation,
   which is anticonservative at the discordant counts a 684-row test set produces.
+
+  The measured comparison: baseline 0.944 [0.926, 0.961] against HerBERT 0.986 [0.976, 0.994],
+  with HerBERT right on 38 reviews the baseline misses and wrong on 7 it gets — 45 disagreements,
+  *p* < 0.0001. Forty-one errors become ten.
 
 ## Learning curve
 
@@ -131,9 +142,16 @@ It does, however, **rank** well, which is what a deferral rule needs. Setting as
 confident 10% raises macro-F1 on what remains to 0.974. The operating threshold is read off
 that curve rather than from the confidence number.
 
-The two-model **cascade** — the deferred share answered by HerBERT — is deliberately not
-estimated. It depends on how HerBERT answers those specific reviews, and until the GPU run
-exists, the panel says so.
+The two-model **cascade** was left unestimated until a GPU run existed, because it depends on
+how HerBERT answers those specific reviews. It now exists: routing the least-confident **20%**
+to HerBERT reaches **0.980 macro-F1**, which is 85% of everything the transformer adds over the
+baseline (0.944 → 0.986) for a fifth of the GPU traffic. The quoted rate follows a rule rather
+than being chosen for its number — the smallest share in the table that closes at least 80% of
+the gap.
+
+Two things the cascade is not. It is not a latency win: deferred reviews still wait for the
+transformer, so the tail gets slower. And the confidence it routes on is not a probability —
+it works because it *ranks*, which is what the risk–coverage curve measures.
 
 ## Interpretability
 
