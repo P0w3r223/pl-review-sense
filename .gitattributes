@@ -1,0 +1,11 @@
+# The published page is compared byte for byte — by the CI drift guard and by the test beside
+# it. The build writes LF explicitly so the rebuild matches on any OS; without this line a
+# Windows checkout converts the committed copy to CRLF, and every local rebuild then reports a
+# stale page for a reason no commit caused.
+docs/index.html text eol=lf
+
+# The metrics are the page's only input, and the analysis writes them with LF for the same
+# reason: a file that changes line endings on checkout is a file the page silently disagrees
+# with.
+reports/metrics/*.json text eol=lf
+reports/predictions/*.json text eol=lf

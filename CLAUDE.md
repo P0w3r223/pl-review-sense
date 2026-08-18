@@ -11,34 +11,60 @@ plus modern deep learning (Hugging Face), with honest, methodical comparison.
 ## Architecture
 ```
 src/pl_review_sense/
-  config.py         # dataset, label scheme, paths, model hyperparameters (no I/O)
+  config.py         # dataset, label scheme, paths, hyperparameters, thresholds (no I/O)
   data.py           # load PolEmo, drop 'ambiguous', map to negative/neutral/positive
   baseline.py       # TF-IDF + logistic-regression pipeline (train/predict/save/load)
   baseline_train.py # `python -m pl_review_sense.baseline_train` — train + evaluate + save
   evaluate.py       # macro-F1, per-class metrics, confusion matrix, error extraction (pure)
+  stats.py          # bootstrap intervals, exact McNemar, calibration/ECE (pure)
+  curves.py         # learning curve + stratified subsampling; the fit is injected (pure)
+  challenge.py      # probe variants (diacritics, typos) and scoring (pure)
+  challenge_set.py  # the 80 hand-written Polish probe sentences — our text, never PolEmo
+  cascade.py        # risk–coverage for one model, cascade for two (pure)
+  interpret.py      # heaviest coefficients per class (pure + a pipeline adapter)
+  analysis.py       # `python -m pl_review_sense.analysis` — the only writer of reports/metrics/
   herbert.py        # HerBERT fine-tuning (Trainer) + `--smoke` CPU mode; torch imports guarded
-  report.py         # standalone HTML report -> docs/ (GitHub Pages)
+  site/             # `python -m pl_review_sense.site` — Jinja template, styles.css, SVG charts
 api/                # FastAPI /predict serving the baseline
 notebooks/          # EDA + models notebook; self-contained Colab HerBERT notebook
 tests/              # pytest
-docs/research/      # data + methodology
+docs/               # published page, adr/, model-card.md, research/
 ```
 
-## Methodology rules (do not violate)
+## Methodology rules
+
+The project's own commitments, each with the reason it exists — a rule whose rationale is
+missing is one a later change will reasonably decide to "improve" away.
+
 - **Macro-F1 is the headline metric**, not accuracy — the classes are imbalanced.
 - **Three classes**: drop PolEmo's `ambiguous`; map `minus/zero/plus` -> negative/neutral/positive.
-  Document the drop; never silently merge it into another class.
+  Ambiguous is not a point on the negative–positive axis, so folding it into neutral corrupts
+  that class. Document the drop.
 - **No leakage**: fit the TF-IDF vectorizer and any encoder on **train only** (inside a Pipeline),
   evaluate on the untouched test split.
-- **HerBERT trains on GPU (Colab).** The local `--smoke` run only proves the code path works; its
-  numbers are non-representative and never presented as the model's result.
-- **Separate I/O from logic.** `data`/`baseline`/`evaluate`/`report` stay pure and unit-tested;
-  network/disk live in `*_train`, `herbert`, `api`, and the report writer.
+- **HerBERT trains on GPU (Colab).** The local `--smoke` run proves the code path works; its
+  numbers go to a separate file, because a smoke run reported as the model's result is a
+  comparison against a model that was never trained.
+- **I/O lives at the edges.** The modules marked `(pure)` above stay free of network and disk, so
+  they are unit-tested without either; `*_train`, `analysis`, `herbert`, `api` and `site/build`
+  are where the boundary is crossed.
+- **Every score carries its interval; comparisons are paired.** Three decimals of macro-F1 invite
+  a comparison this test set cannot support, and two models answering the same rows are compared
+  with exact McNemar over their disagreements rather than by which point estimate is larger.
+- **Every figure carries its n** — the site build raises `IncompleteFigure` instead of publishing
+  marks whose counts are unstated.
+- **The page is a function of `reports/metrics/`.** No wall clock, no dataset, no model at build
+  time. Change it through `site/templates/` and rebuild; CI diffs the rebuilt page against the
+  committed `docs/index.html`.
+- **A panel with no evidence says so** — anything waiting on the GPU run renders as a panel naming
+  what is missing and what would settle it, in place of an estimate.
+- **The challenge set is ours and stays balanced.** Sentences are written for this repo, never
+  PolEmo text; each cell keeps both directions of its phenomenon so no single answer can win it
+  (tests enforce a 60% ceiling per cell).
 
 ## Conventions
 - English for code, comments, README, commits. Conventional Commits.
 - No hardcoded values — configurable things live in `config.py`.
-- Separate I/O from logic; pure functions are unit-tested.
 - Interpreter: `.venv/Scripts/python.exe` (Python 3.12). Standard core install has **no torch**;
   the transformer extra is only for the HerBERT path.
 
@@ -47,7 +73,8 @@ docs/research/      # data + methodology
 .venv/Scripts/python -m pip install -r requirements.txt      # core + dev (no torch)
 pytest
 python -m pl_review_sense.baseline_train                     # downloads PolEmo, trains baseline
-python -m pl_review_sense.report                             # build the static site
+python -m pl_review_sense.analysis                           # writes reports/metrics/*.json
+python -m pl_review_sense.site                               # build the static site into docs/
 uvicorn api.main:app --reload                                # POST /predict {"text": "..."}
 
 # HerBERT: real run on Colab GPU (notebooks/herbert_colab.ipynb). Local code-path check:

@@ -1,0 +1,118 @@
+{
+  "expected_calibration_error": 0.2086332777777777,
+  "bins": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0,
+      "mean_confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0,
+      "mean_confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.30000000000000004,
+      "count": 0,
+      "mean_confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.30000000000000004,
+      "upper": 0.4,
+      "count": 5,
+      "mean_confidence": 0.38640679999999994,
+      "accuracy": 0.6
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 54,
+      "mean_confidence": 0.4636353703703704,
+      "accuracy": 0.6481481481481481
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6000000000000001,
+      "count": 79,
+      "mean_confidence": 0.555077746835443,
+      "accuracy": 0.8227848101265823
+    },
+    {
+      "lower": 0.6000000000000001,
+      "upper": 0.7000000000000001,
+      "count": 121,
+      "mean_confidence": 0.6545169834710745,
+      "accuracy": 0.9504132231404959
+    },
+    {
+      "lower": 0.7000000000000001,
+      "upper": 0.8,
+      "count": 171,
+      "mean_confidence": 0.7496168011695908,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 178,
+      "mean_confidence": 0.8514662134831461,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 76,
+      "mean_confidence": 0.9280702368421054,
+      "accuracy": 1.0
+    }
+  ],
+  "risk_coverage": [
+    {
+      "deferral_rate": 0.0,
+      "deferred": 0,
+      "kept": 684,
+      "threshold": 0.376301,
+      "macro_f1": 0.9439412539882738,
+      "accuracy": 0.9400584795321637
+    },
+    {
+      "deferral_rate": 0.05,
+      "deferred": 34,
+      "kept": 650,
+      "threshold": 0.470863,
+      "macro_f1": 0.9628621155663425,
+      "accuracy": 0.96
+    },
+    {
+      "deferral_rate": 0.1,
+      "deferred": 68,
+      "kept": 616,
+      "threshold": 0.518833,
+      "macro_f1": 0.9742174560768811,
+      "accuracy": 0.9724025974025974
+    },
+    {
+      "deferral_rate": 0.2,
+      "deferred": 137,
+      "kept": 547,
+      "threshold": 0.59758,
+      "macro_f1": 0.9906850459482038,
+      "accuracy": 0.9890310786106032
+    },
+    {
+      "deferral_rate": 0.3,
+      "deferred": 205,
+      "kept": 479,
+      "threshold": 0.661316,
+      "macro_f1": 0.9963494930382347,
+      "accuracy": 0.9958246346555324
+    }
+  ],
+  "cascade": []
+}

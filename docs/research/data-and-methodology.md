@@ -58,10 +58,69 @@ minutes per epoch, and a ~0.5 GB checkpoint. On this text-level task the TF-IDF 
 already strong (macro-F1 ≈ 0.94), so the comparison is as much about **cost vs marginal gain**
 as about raw accuracy — which is the point of the project.
 
+## Uncertainty and comparison
+
+A macro-F1 on 684 test rows is a point estimate, and the third decimal is not a finding. Two
+tools, answering two different questions:
+
+- **How tightly is one model pinned down** — a 2 000-resample percentile bootstrap over the
+  test rows, seeded, so the interval is reproducible from the committed predictions. The
+  baseline lands at 0.944 with a 95% interval of 0.926–0.961.
+- **Are two models different** — an **exact McNemar test** over the reviews the two models
+  answer differently. Both see the same rows, so this is the question overlapping intervals
+  cannot settle: a model right on every review the other misses is distinguishable long before
+  the intervals come apart. The exact binomial form rather than the chi-square approximation,
+  which is anticonservative at the discordant counts a 684-row test set produces.
+
+## Learning curve
+
+The same pipeline refit from scratch on **stratified** subsamples (150 → 4 800, five seeds
+each) and scored on the untouched test split. Stratified because an unstratified draw of 150
+rows from an imbalanced corpus can miss the neutral class outright, which would measure the
+draw rather than the size; five seeds because one subsample per size draws a curve whose bumps
+are sampling noise. The band on the published chart is the spread across seeds.
+
+1 200 labelled reviews — 23% of the corpus — already land within 0.02 macro-F1 of what all
+5 264 produce. That is the "should we fine-tune a transformer" question asked where the answer
+is cheap to test.
+
+## Challenge set
+
+80 sentences written for this project (never PolEmo text), in four cells of twenty: `plain`
+(control), `negation`, `sarcasm`, `contrast`, plus derived variants with diacritics stripped
+and a typo introduced. Cells are balanced so that no single answer wins them — see
+[ADR 0002](../adr/0002_challenge-set-design.md) for the design and its rationale.
+
+Result: **48 of 80**, including 13 of 20 on the control cell. The corpus score does not carry
+over to sentence-length input, which is the more useful finding about this model than the
+score itself.
+
+## Calibration and deferral
+
+The model's confidence is **not** a probability: expected calibration error 0.209, with bins
+around 0.75 confidence answered correctly every time — under-confident, which is the direction
+that makes a naive "escalate anything below 0.7" rule waste the expensive model on reviews the
+cheap one gets right.
+
+It does, however, **rank** well, which is what a deferral rule needs. Setting aside the least
+confident 10% raises macro-F1 on what remains to 0.974. The operating threshold is read off
+that curve rather than from the confidence number.
+
+The two-model **cascade** — the deferred share answered by HerBERT — is deliberately not
+estimated. It depends on how HerBERT answers those specific reviews, and until the GPU run
+exists, the panel says so.
+
+## Interpretability
+
+The heaviest coefficients per class, extracted from the fitted pipeline. These are model
+weights, not corpus excerpts. They are also the cross-check on everything above: where a
+class's heaviest terms are evaluative the model has learned sentiment, and where they are
+topical it has learned to recognise the subject matter — which is what a probe of short,
+domain-neutral sentences then exposes.
+
 ## Error analysis
 
-Misclassifications are inspected locally (in the notebook, from data that is not committed).
-The lens: **negation** cues (`nie`, `bez`, `brak`, …) and **sarcasm / contrastive clauses**
-(double negatives, "świetnie, znowu się zepsuło") — phenomena a bag-of-words model cannot
-represent but a contextual transformer can. The committed report shows aggregate stats plus
-*illustrative* sentences written by us (not PolEmo excerpts).
+Misclassifications on PolEmo itself are inspected locally (in the notebook, from data that is
+not committed), through the same lens: **negation** cues (`nie`, `bez`, `brak`, …) and
+**sarcasm / contrastive clauses**. What the report publishes is the challenge-set measurement
+above plus aggregate statistics — never PolEmo excerpts.

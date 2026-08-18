@@ -11,10 +11,23 @@ REPORTS_DIR = PROJECT_ROOT / "reports"
 METRICS_DIR = REPORTS_DIR / "metrics"
 PREDICTIONS_DIR = REPORTS_DIR / "predictions"
 
+PUBLISH_DIR = PROJECT_ROOT / "docs"
+
 BASELINE_MODEL_PATH = MODELS_DIR / "baseline_tfidf_logreg.joblib"
 BASELINE_METRICS_PATH = METRICS_DIR / "baseline.json"
 HERBERT_METRICS_PATH = METRICS_DIR / "herbert.json"
 BASELINE_PREDICTIONS_PATH = PREDICTIONS_DIR / "baseline_test.json"
+HERBERT_PREDICTIONS_PATH = PREDICTIONS_DIR / "herbert_test.json"
+
+# One file per question the page asks, so a panel whose evidence has not been produced yet
+# is missing on its own rather than blocking every other panel.
+MANIFEST_PATH = METRICS_DIR / "manifest.json"
+SIGNIFICANCE_PATH = METRICS_DIR / "significance.json"
+LEARNING_CURVE_PATH = METRICS_DIR / "learning_curve.json"
+CHALLENGE_PATH = METRICS_DIR / "challenge.json"
+DEFERRAL_PATH = METRICS_DIR / "deferral.json"
+INTERPRETABILITY_PATH = METRICS_DIR / "interpretability.json"
+COST_PATH = METRICS_DIR / "cost.json"
 
 # --- Dataset -----------------------------------------------------------------
 # PolEmo 2.0 (CLARIN-PL). Loaded through a dataset script -> requires datasets < 3.
@@ -58,6 +71,39 @@ SMOKE_SUBSET = 200
 SMOKE_EPOCHS = 1
 SMOKE_BATCH_SIZE = 8
 SMOKE_MAX_LEN = 128
+
+# --- Uncertainty around a score ----------------------------------------------
+# A single macro-F1 on 684 test rows is a point estimate; the interval is what says whether
+# two models are actually apart. Percentile bootstrap over the test rows.
+BOOTSTRAP_RESAMPLES = 2_000
+CONFIDENCE_LEVEL = 0.95
+# Where the paired test stops calling a difference chance. Conventional, and stated once so the
+# page and any later analysis cannot disagree about what "significant" meant.
+SIGNIFICANCE_LEVEL = 0.05
+
+# --- Learning curve ----------------------------------------------------------
+# Absolute training sizes, because "how many labelled reviews do I need" is the question a
+# reader brings to this chart — a fraction of a corpus they do not have answers nothing.
+LEARNING_CURVE_SIZES = (150, 300, 600, 1_200, 2_400, 4_800)
+# Several draws per size: one subsample measures that draw's luck, not the size.
+LEARNING_CURVE_SEEDS = (0, 1, 2, 3, 4)
+
+# --- Calibration and deferral ------------------------------------------------
+CALIBRATION_BINS = 10
+# How far the average confidence may sit from the average accuracy before the page calls the
+# model over- or under-confident rather than roughly honest.
+CALIBRATION_TOLERANCE = 0.02
+# Shares of the test set handed onward, lowest confidence first. 0.0 is kept deliberately:
+# it is the no-deferral reference every other row is read against.
+DEFERRAL_RATES = (0.0, 0.05, 0.10, 0.20, 0.30)
+
+# --- Challenge set -----------------------------------------------------------
+# Below this many cases a phenomenon is reported as a count, never as a percentage: eight
+# sentences cannot support a rate, and rounding them into one invites exactly that reading.
+MIN_PHENOMENON_N = 20
+
+# --- Interpretability --------------------------------------------------------
+TOP_TERMS_PER_CLASS = 10
 
 # --- Misc --------------------------------------------------------------------
 RANDOM_STATE = 42

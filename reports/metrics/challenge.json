@@ -1,0 +1,88 @@
+{
+  "base_cases": 80,
+  "derived_cases": 158,
+  "min_phenomenon_n": 20,
+  "scores": [
+    {
+      "phenomenon": "plain",
+      "correct": 13,
+      "total": 20,
+      "note": "unambiguous sentiment, no negation, irony or pivot — the control cell",
+      "thin": false
+    },
+    {
+      "phenomenon": "negation",
+      "correct": 13,
+      "total": 20,
+      "note": "sentiment carried by a negation cue, in both directions",
+      "thin": false
+    },
+    {
+      "phenomenon": "sarcasm",
+      "correct": 11,
+      "total": 20,
+      "note": "ironic praise against genuine praise in the same register",
+      "thin": false
+    },
+    {
+      "phenomenon": "contrast",
+      "correct": 11,
+      "total": 20,
+      "note": "a pivot (ale / jednak / mimo) after which the sentiment lands",
+      "thin": false
+    },
+    {
+      "phenomenon": "no-diacritics",
+      "correct": 47,
+      "total": 78,
+      "note": "every base case with Polish diacritics stripped",
+      "thin": false
+    },
+    {
+      "phenomenon": "typos",
+      "correct": 47,
+      "total": 80,
+      "note": "every base case with one adjacent-character swap in its longest word",
+      "thin": false
+    }
+  ],
+  "misses_total": 96,
+  "misses": [
+    {
+      "text": "Zamówienie dotarło uszkodzone, a reklamację odrzucono.",
+      "phenomenon": "plain",
+      "gold": "negative",
+      "predicted": "neutral"
+    },
+    {
+      "text": "Zajęcia prowadzone chaotycznie, materiał kompletnie przestarzały.",
+      "phenomenon": "plain",
+      "gold": "negative",
+      "predicted": "positive"
+    },
+    {
+      "text": "Hotel leży dwa przystanki od dworca, śniadanie w formie bufetu.",
+      "phenomenon": "plain",
+      "gold": "neutral",
+      "predicted": "positive"
+    },
+    {
+      "text": "Wizyta trwała dwadzieścia minut, lekarz zlecił podstawowe badania krwi.",
+      "phenomenon": "plain",
+      "gold": "neutral",
+      "predicted": "negative"
+    },
+    {
+      "text": "Kurs obejmuje dwanaście spotkań po dziewięćdziesiąt minut, materiały w PDF.",
+      "phenomenon": "plain",
+      "gold": "neutral",
+      "predicted": "positive"
+    },
+    {
+      "text": "Przesyłka przyszła kurierem w trzy dni robocze, opakowanie standardowe.",
+      "phenomenon": "plain",
+      "gold": "neutral",
+      "predicted": "negative"
+    }
+  ]
+}
