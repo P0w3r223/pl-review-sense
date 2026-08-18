@@ -6,7 +6,7 @@ The vectorizer lives inside the Pipeline, so it is fit on the training fold only
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Sequence
+from typing import List, Optional, Sequence
 
 import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -15,13 +15,18 @@ from sklearn.pipeline import Pipeline
 
 from . import config
 
+# The pipeline's step names, named once. `interpret` reaches into the fitted pipeline by these
+# keys, and a rename here would otherwise fail there at runtime rather than at import.
+VECTORIZER_STEP = "tfidf"
+CLASSIFIER_STEP = "clf"
+
 
 def build_pipeline() -> Pipeline:
     """TF-IDF (word n-grams) -> multinomial logistic regression. Nothing is fit here."""
     return Pipeline(
         [
             (
-                "tfidf",
+                VECTORIZER_STEP,
                 TfidfVectorizer(
                     ngram_range=config.TFIDF_NGRAM_RANGE,
                     max_features=config.TFIDF_MAX_FEATURES,
@@ -30,7 +35,7 @@ def build_pipeline() -> Pipeline:
                 ),
             ),
             (
-                "clf",
+                CLASSIFIER_STEP,
                 LogisticRegression(
                     C=config.LOGREG_C,
                     max_iter=config.LOGREG_MAX_ITER,
@@ -56,11 +61,21 @@ def predict_proba(pipe: Pipeline, texts: Sequence[str]) -> List[List[float]]:
     return [[float(x) for x in row] for row in pipe.predict_proba(list(texts))]
 
 
-def save(pipe: Pipeline, path: Path = config.BASELINE_MODEL_PATH) -> Path:
+def save(pipe: Pipeline, path: Optional[Path] = None) -> Path:
+    """Persist the fitted pipeline. The destination is resolved when called, not at import.
+
+    A default of ``config.BASELINE_MODEL_PATH`` in the signature is evaluated once, when this
+    module is first imported, and binds the real path into the function forever: redirecting
+    ``config`` afterwards has no effect, and anything calling ``save(pipe)`` writes over the
+    trained model in ``models/`` whatever it was configured to do. A test doing exactly that
+    is what surfaced this.
+    """
+    path = path or config.BASELINE_MODEL_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(pipe, path)
     return path
 
 
-def load(path: Path = config.BASELINE_MODEL_PATH) -> Pipeline:
-    return joblib.load(path)
+def load(path: Optional[Path] = None) -> Pipeline:
+    """Load the fitted pipeline, resolving the default at call time — see ``save``."""
+    return joblib.load(path or config.BASELINE_MODEL_PATH)

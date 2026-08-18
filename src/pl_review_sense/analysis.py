@@ -65,7 +65,20 @@ def _write(path: Path, payload: dict) -> None:
     with open(path, "w", encoding="utf-8", newline="\n") as handle:
         handle.write(json.dumps(payload, indent=2, ensure_ascii=False))
         handle.write("\n")
-    print(f"wrote {path.relative_to(config.PROJECT_ROOT).as_posix()}")
+    print(f"wrote {_readable(path)}")
+
+
+def _readable(path: Path) -> str:
+    """Repo-relative when the file is in the repo, absolute when it is not.
+
+    ``relative_to`` raises for anything outside the project, so writing to a directory chosen
+    on the command line would fail in the log line rather than in the work — the least useful
+    place for a run to stop.
+    """
+    try:
+        return path.relative_to(config.PROJECT_ROOT).as_posix()
+    except ValueError:
+        return str(path)
 
 
 def _read(path: Path) -> Optional[dict]:
@@ -77,7 +90,10 @@ def _load_predictions(path: Path) -> Optional[dict]:
     payload = _read(path)
     if payload is None:
         return None
-    lengths = {len(payload[column]) for column in ("true", "pred") if column in payload}
+    missing = [column for column in ("true", "pred") if column not in payload]
+    if missing:
+        raise ValueError(f"{path.name}: predictions file has no {', '.join(missing)} column")
+    lengths = {len(payload[column]) for column in ("true", "pred")}
     if "proba" in payload:
         lengths.add(len(payload["proba"]))
     if len(lengths) != 1:

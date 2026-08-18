@@ -352,7 +352,8 @@ footer {
 <p class="note">
   What the cheap side of that trade costs, measured rather than asserted: the full pipeline
   fits in <strong>3.0 s</strong> on
-  Intel64 Family 6 Model 158 Stepping 10, GenuineIntel (CPU), the saved model is
+  Intel64 Family 6 Model 158 Stepping 10, GenuineIntel (CPU),
+the saved model is
   3.2 MB, and it classifies
   6548 reviews a second. HerBERT's side of the comparison is a GPU and minutes per epoch, and it stays a
   description rather than a number until that run happens.
@@ -381,6 +382,43 @@ footer {
     to them.
   </figcaption>
 </figure>
+<table>
+  <thead>
+    <tr><th>cell</th><th>what it holds</th><th class="num">correct</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>plain</th>
+      <td>unambiguous sentiment, no negation, irony or pivot — the control cell</td>
+      <td class="num">13 / 20</td>
+    </tr>
+    <tr>
+      <th>negation</th>
+      <td>sentiment carried by a negation cue, in both directions</td>
+      <td class="num">13 / 20</td>
+    </tr>
+    <tr>
+      <th>sarcasm</th>
+      <td>ironic praise against genuine praise in the same register</td>
+      <td class="num">11 / 20</td>
+    </tr>
+    <tr>
+      <th>contrast</th>
+      <td>a pivot (ale / jednak / mimo) after which the sentiment lands</td>
+      <td class="num">11 / 20</td>
+    </tr>
+    <tr>
+      <th>no-diacritics</th>
+      <td>every base case with Polish diacritics stripped</td>
+      <td class="num">47 / 78</td>
+    </tr>
+    <tr>
+      <th>typos</th>
+      <td>every base case with one adjacent-character swap in its longest word</td>
+      <td class="num">47 / 80</td>
+    </tr>
+  </tbody>
+</table>
 <p>
   The cells are built so that no single answer can win them. Every ironic sentence has a
   genuine counterpart in the same enthusiastic register, down to minimal pairs — "bateria

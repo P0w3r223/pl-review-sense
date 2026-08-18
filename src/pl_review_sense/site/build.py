@@ -83,13 +83,27 @@ def _headline(baseline_metrics: dict, probe: Optional[dict], significance: Optio
     herbert = (significance or {}).get("herbert")
 
     if test and herbert:
-        if test["p_value"] >= 0.05:
+        if test["p_value"] >= config.SIGNIFICANCE_LEVEL:
             return {
                 "claim": "The transformer is not distinguishable from a bag of words here",
                 "detail": (
                     f"HerBERT is right on {test['only_herbert_correct']} reviews the baseline "
                     f"misses and wrong on {test['only_baseline_correct']} it gets — a difference "
                     f"this test set cannot separate from chance (p = {test['p_value']:.2f})."
+                ),
+            }
+        # Which way the significant difference runs is read from the numbers, not assumed. This
+        # string is also the <title> and the <h1>, and it fires exactly once — on the day the
+        # GPU run lands. A headline that reports a loss as a win would do it at the worst
+        # possible moment, and the page's whole claim is that its lead is derived.
+        if herbert["macro_f1"] < macro:
+            return {
+                "claim": f"Fine-tuning HerBERT scored below the baseline, {herbert['macro_f1']:.3f} to {macro:.3f}",
+                "detail": (
+                    f"The baseline is right on {test['only_baseline_correct']} reviews HerBERT "
+                    f"misses and wrong on {test['only_herbert_correct']} it gets; across "
+                    f"{test['discordant']} disagreements that gap is real (p = "
+                    f"{test['p_value']:.4f}), not a rounding artefact of one test split."
                 ),
             }
         return {
@@ -207,9 +221,9 @@ def _calibration_direction(deferral: Optional[dict]) -> Optional[str]:
     rows = sum(item["count"] for item in populated)
     gap = sum(item["count"] * (item["accuracy"] - item["mean_confidence"]) for item in populated)
     average = gap / rows
-    if average > 0.02:
+    if average > config.CALIBRATION_TOLERANCE:
         return "under"
-    if average < -0.02:
+    if average < -config.CALIBRATION_TOLERANCE:
         return "over"
     return "close"
 
@@ -320,7 +334,7 @@ def gather(metrics_dir: Optional[Path] = None) -> dict:
         )
     }
 
-    if curve:
+    if curve and curve["points"]:
         rendered["curve"] = charts.curve_chart(
             [
                 charts.CurvePoint(
@@ -343,6 +357,9 @@ def gather(metrics_dir: Optional[Path] = None) -> dict:
     if probe:
         rendered["probe"] = charts.fraction_chart(
             [
+                # The cell's description travels to the table beside the chart rather than onto
+                # the bar: "unambiguous sentiment, no negation, irony or pivot" is a definition,
+                # and a definition printed at the end of a bar is a caption in the wrong place.
                 charts.Fraction(
                     label=row["phenomenon"],
                     correct=row["correct"],
