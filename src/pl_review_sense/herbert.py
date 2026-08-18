@@ -145,6 +145,31 @@ def write_metrics(result: evaluate.EvalResult, run: str, representative: bool) -
     print(f"wrote {path.name}")
 
 
+def write_predictions(y_true: List[int], y_pred: List[int], representative: bool) -> None:
+    """Persist per-row predictions so the two models can be compared *pairwise* later.
+
+    Only a representative run is written. McNemar's test asks which reviews the two models
+    disagree on, so a file of smoke-run predictions would not be a weaker comparison — it
+    would be a comparison against a model that was never trained, in the same file name the
+    real one belongs in.
+
+    Same columnar shape and same row order as the baseline's file: the pairing is positional,
+    and nothing else records which review a row came from.
+    """
+    if not representative:
+        print("skipping paired predictions: only a GPU run can stand beside the baseline")
+        return
+    config.PREDICTIONS_DIR.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "model": "herbert",
+        "labels": list(config.LABEL_NAMES),
+        "true": [int(t) for t in y_true],
+        "pred": [int(p) for p in y_pred],
+    }
+    config.HERBERT_PREDICTIONS_PATH.write_text(json.dumps(payload), encoding="utf-8")
+    print(f"wrote {config.HERBERT_PREDICTIONS_PATH.name}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="pl_review_sense.herbert", description="Fine-tune HerBERT.")
     parser.add_argument(
@@ -161,7 +186,7 @@ def main(argv=None) -> None:
     run = "smoke" if args.smoke else "full"
 
     data = load_polemo()
-    result, _ = fine_tune(data, train_args)
+    result, y_pred = fine_tune(data, train_args)
 
     # "Representative" means a real full run on a GPU — never merely "no --smoke flag". A full
     # run on CPU is just as unrepresentative as the smoke run, so it must not become the headline.
@@ -174,6 +199,7 @@ def main(argv=None) -> None:
         print("NOTE: non-representative run (smoke or no GPU) — not written as the headline "
               "result. Run notebooks/herbert_colab.ipynb on a GPU for real numbers.")
     write_metrics(result, run, representative)
+    write_predictions(data.test.labels, y_pred, representative)
 
 
 if __name__ == "__main__":

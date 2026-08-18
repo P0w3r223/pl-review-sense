@@ -1,0 +1,131 @@
+{
+  "top_n": 10,
+  "per_class": {
+    "negative": [
+      {
+        "term": "nie",
+        "weight": 5.391308422325923
+      },
+      {
+        "term": "nie polecam",
+        "weight": 4.700736136003639
+      },
+      {
+        "term": "niestety",
+        "weight": 3.7814324344503207
+      },
+      {
+        "term": "odradzam",
+        "weight": 3.0340699507674334
+      },
+      {
+        "term": "brak",
+        "weight": 2.80131439107025
+      },
+      {
+        "term": "po",
+        "weight": 2.4785842189935434
+      },
+      {
+        "term": "nic",
+        "weight": 1.7591031496411453
+      },
+      {
+        "term": "pokoju",
+        "weight": 1.7285420134675922
+      },
+      {
+        "term": "bo",
+        "weight": 1.70693740327155
+      },
+      {
+        "term": "za",
+        "weight": 1.6658058084007303
+      }
+    ],
+    "neutral": [
+      {
+        "term": "prof",
+        "weight": 2.9340124294490755
+      },
+      {
+        "term": "proc",
+        "weight": 2.932776393082978
+      },
+      {
+        "term": "czy",
+        "weight": 2.172263916520984
+      },
+      {
+        "term": "polsce",
+        "weight": 1.911373571223573
+      },
+      {
+        "term": "pap",
+        "weight": 1.8808205864554073
+      },
+      {
+        "term": "będzie",
+        "weight": 1.8656897467529379
+      },
+      {
+        "term": "hoteli",
+        "weight": 1.7588716029292393
+      },
+      {
+        "term": "także",
+        "weight": 1.6252464746497166
+      },
+      {
+        "term": "są",
+        "weight": 1.619340471441055
+      },
+      {
+        "term": "oraz",
+        "weight": 1.6014339600548955
+      }
+    ],
+    "positive": [
+      {
+        "term": "bardzo",
+        "weight": 4.344403057632345
+      },
+      {
+        "term": "polecam",
+        "weight": 4.120159825622579
+      },
+      {
+        "term": "zawsze",
+        "weight": 2.0874839736709943
+      },
+      {
+        "term": "czyste",
+        "weight": 1.6805792910168018
+      },
+      {
+        "term": "doktor",
+        "weight": 1.636098832797264
+      },
+      {
+        "term": "miła",
+        "weight": 1.6327541219419917
+      },
+      {
+        "term": "super",
+        "weight": 1.594079816147591
+      },
+      {
+        "term": "jestem",
+        "weight": 1.553847545352856
+      },
+      {
+        "term": "doktora",
+        "weight": 1.5369740938650962
+      },
+      {
+        "term": "wszystko",
+        "weight": 1.5024597062874054
+      }
+    ]
+  }
+}

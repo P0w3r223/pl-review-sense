@@ -30,10 +30,28 @@ def _write_metrics(result: evaluate.EvalResult) -> None:
     )
 
 
-def _write_predictions(y_true, y_pred) -> None:
+def _write_predictions(y_true, y_pred, probabilities) -> None:
+    """Per-row predictions, in test-split order, with the model's own probabilities.
+
+    Columnar rather than a list of objects: the file is read as three parallel arrays by
+    everything downstream, and repeating three keys 684 times to say so costs more than it
+    explains. The probabilities are what make deferral and calibration measurable at all —
+    a confidence the page never sees cannot be checked against how often it was right.
+
+    Row order is the test split's own, which is what pairs these predictions with HerBERT's
+    for the McNemar test later. Still no review text: labels and numbers only.
+    """
     config.PREDICTIONS_DIR.mkdir(parents=True, exist_ok=True)
-    rows = [{"true": int(t), "pred": int(p)} for t, p in zip(y_true, y_pred)]
-    config.BASELINE_PREDICTIONS_PATH.write_text(json.dumps(rows), encoding="utf-8")
+    payload = {
+        "model": "tfidf+logreg",
+        "labels": list(config.LABEL_NAMES),
+        "true": [int(t) for t in y_true],
+        "pred": [int(p) for p in y_pred],
+        "proba": [[round(float(value), 6) for value in row] for row in probabilities],
+    }
+    config.BASELINE_PREDICTIONS_PATH.write_text(
+        json.dumps(payload, indent=None), encoding="utf-8"
+    )
 
 
 def main() -> None:
@@ -43,7 +61,10 @@ def main() -> None:
     print(f"loaded PolEmo: train={len(data.train)} val={len(data.validation)} test={len(data.test)}")
 
     pipe = baseline.train(data.train.texts, data.train.labels)
-    y_pred = baseline.predict(pipe, data.test.texts)
+    proba = baseline.predict_proba(pipe, data.test.texts)
+    # Predict from the probabilities rather than calling `predict` separately: the label and
+    # the confidence published beside it then cannot disagree about the same review.
+    y_pred = [max(range(len(row)), key=lambda i: row[i]) for row in proba]
     result = evaluate.evaluate(data.test.labels, y_pred)
     print(f"accuracy={result.accuracy:.4f}  macro_f1={result.macro_f1:.4f}")
     for cls in result.per_class:
@@ -51,8 +72,9 @@ def main() -> None:
 
     baseline.save(pipe)
     _write_metrics(result)
-    _write_predictions(data.test.labels, y_pred)
+    _write_predictions(data.test.labels, y_pred, proba)
     print(f"saved model -> {config.BASELINE_MODEL_PATH.name}, metrics + predictions -> reports/")
+    print("next: python -m pl_review_sense.analysis   # intervals, curve, probe, deferral")
 
 
 if __name__ == "__main__":
