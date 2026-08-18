@@ -1,0 +1,454 @@
+"""Assemble the published page from the committed metrics.
+
+The page is a *function of* ``reports/metrics/``. Nothing here measures anything, nothing
+reads the dataset, and nothing consults the wall clock — the timestamp in the footer is the
+one the analysis recorded. That is what lets CI rebuild the page from the committed numbers
+and fail if ``docs/index.html`` disagrees with them, which is the failure mode a hand-edited
+report actually has.
+
+The page leads with a finding rather than with a summary of itself, and the finding is
+derived: if the numbers stop supporting it, the headline changes with them instead of quietly
+becoming false.
+
+Panels whose evidence does not exist yet render as themselves, saying what is missing. A
+section that disappears until its data arrives looks like a page that never had one.
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, List, Optional
+
+from jinja2 import Environment, FileSystemLoader, StrictUndefined
+from markupsafe import Markup
+
+from pl_review_sense import challenge, config
+from pl_review_sense.site import charts
+
+TEMPLATE_DIR = Path(__file__).parent / "templates"
+ASSET_DIR = Path(__file__).parent / "assets"
+
+# The probe cells written by hand, as opposed to the ones derived by re-spelling them. Only
+# these count towards the headline: the derived cells re-score the same sentences, and
+# pooling all six would weight every sentence three times.
+BASE_PHENOMENA = (challenge.PLAIN, challenge.NEGATION, challenge.SARCASM, challenge.CONTRAST)
+
+# Below this share of its own probe the baseline is reported as not carrying over to short
+# reviews. Set where "most of them" stops being a fair description of the successes.
+PROBE_CARRIES_OVER = 0.80
+# The deferral rate the KPI quotes. One of config.DEFERRAL_RATES, chosen as the smallest
+# that is a plausible operating point rather than the flattering largest.
+HEADLINE_DEFERRAL = 0.10
+# How close to the full-corpus score counts as "the rest is not worth labelling", in macro-F1
+# points. Two points is roughly the width of the interval around the score itself.
+WITHIN_DELTA = 0.02
+
+
+class IncompleteFigure(RuntimeError):
+    """Raised when a figure would be published without the counts behind it."""
+
+
+@dataclass(frozen=True)
+class Kpi:
+    label: str
+    value: str
+    note: str
+
+
+def _read(metrics_dir: Path, name: str) -> Optional[dict]:
+    path = metrics_dir / name
+    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
+
+
+def _probe_totals(probe: Optional[dict]) -> tuple[int, int]:
+    """Correct and total over the hand-written cells only."""
+    if not probe:
+        return 0, 0
+    rows = [row for row in probe["scores"] if row["phenomenon"] in BASE_PHENOMENA]
+    return sum(row["correct"] for row in rows), sum(row["total"] for row in rows)
+
+
+def _headline(baseline_metrics: dict, probe: Optional[dict], significance: Optional[dict]) -> dict:
+    """The claim the page leads with, derived from the numbers rather than asserted.
+
+    Three states, in order of what the evidence supports. Once HerBERT has run, the paired
+    test is the strongest thing on the page and leads. Until then the probe is: a corpus
+    score that does not survive a short sentence is a more useful finding than the score
+    itself. With neither, the page falls back to reporting the score and its interval.
+    """
+    macro = baseline_metrics["macro_f1"]
+    test = (significance or {}).get("mcnemar")
+    herbert = (significance or {}).get("herbert")
+
+    if test and herbert:
+        if test["p_value"] >= 0.05:
+            return {
+                "claim": "The transformer is not distinguishable from a bag of words here",
+                "detail": (
+                    f"HerBERT is right on {test['only_herbert_correct']} reviews the baseline "
+                    f"misses and wrong on {test['only_baseline_correct']} it gets — a difference "
+                    f"this test set cannot separate from chance (p = {test['p_value']:.2f})."
+                ),
+            }
+        return {
+            "claim": f"HerBERT reaches {herbert['macro_f1']:.3f} against the baseline's {macro:.3f}",
+            "detail": (
+                f"It is right on {test['only_herbert_correct']} reviews the baseline misses and "
+                f"wrong on {test['only_baseline_correct']} it gets; on {test['discordant']} "
+                f"disagreements that is a real difference (p = {test['p_value']:.4f}). What it "
+                "costs is further down the page."
+            ),
+        }
+
+    correct, total = _probe_totals(probe)
+    if total and correct / total < PROBE_CARRIES_OVER:
+        return {
+            "claim": f"A macro-F1 of {macro:.2f} that does not survive a short review",
+            "detail": (
+                f"The same model answers {correct} of {total} one-sentence reviews written for "
+                "this page — sentences with no rare vocabulary, in the domains it was trained "
+                "on. The score belongs to the corpus, not to the task its name describes."
+            ),
+        }
+    return {
+        "claim": f"A bag of words reaches {macro:.3f} macro-F1 on Polish reviews",
+        "detail": (
+            "What a fine-tuned transformer adds to that is the open question this page exists "
+            "to settle, and it is not settled yet."
+        ),
+    }
+
+
+def _kpis(
+    baseline_metrics: dict,
+    significance: Optional[dict],
+    probe: Optional[dict],
+    deferral: Optional[dict],
+    cost: Optional[dict],
+) -> List[Kpi]:
+    interval = (significance or {}).get("baseline")
+    kpis = [
+        Kpi(
+            label="Macro-F1, baseline",
+            value=f"{baseline_metrics['macro_f1']:.3f}",
+            note=(
+                f"{interval['confidence']:.0%} interval {interval['low']:.3f}–{interval['high']:.3f}"
+                f" on {sum(row['support'] for row in baseline_metrics['per_class'])} test reviews"
+                if interval
+                else "no interval computed yet"
+            ),
+        )
+    ]
+
+    correct, total = _probe_totals(probe)
+    kpis.append(
+        Kpi(
+            label="Own probe sentences",
+            value=f"{correct} / {total}" if total else "—",
+            note=(
+                "short reviews we wrote: a control cell, negation, irony and a pivot"
+                if total
+                else "the probe has not been scored"
+            ),
+        )
+    )
+
+    kept = _deferral_point(deferral, HEADLINE_DEFERRAL)
+    kpis.append(
+        Kpi(
+            label=f"Macro-F1 on the {1 - HEADLINE_DEFERRAL:.0%} it keeps",
+            value=f"{kept['macro_f1']:.3f}" if kept else "—",
+            note=(
+                f"when the least confident {kept['deferred']} reviews are handed on"
+                if kept
+                else "no deferral curve computed yet"
+            ),
+        )
+    )
+
+    kpis.append(
+        Kpi(
+            label="To train, on a CPU",
+            value=f"{cost['train_seconds']:.0f} s" if cost else "—",
+            note=(
+                f"{cost['model_bytes'] / 1e6:.1f} MB model, "
+                f"{cost['predict_rows_per_second']:,.0f} reviews/s".replace(",", " ")
+                if cost and cost.get("model_bytes")
+                else "not measured on this machine"
+            ),
+        )
+    )
+    return kpis
+
+
+def _deferral_point(deferral: Optional[dict], rate: float) -> Optional[dict]:
+    if not deferral:
+        return None
+    for point in deferral["risk_coverage"]:
+        if abs(point["deferral_rate"] - rate) < 1e-9:
+            return point
+    return None
+
+
+def _calibration_direction(deferral: Optional[dict]) -> Optional[str]:
+    """Which way the model's confidence is wrong, weighted by how many rows sit in each bin.
+
+    Derived rather than written into the prose: an under-confident model and an over-confident
+    one call for opposite advice, and a page that hard-codes one of them is wrong the day the
+    model changes.
+    """
+    if not deferral:
+        return None
+    populated = [item for item in deferral["bins"] if item["count"]]
+    if not populated:
+        return None
+    rows = sum(item["count"] for item in populated)
+    gap = sum(item["count"] * (item["accuracy"] - item["mean_confidence"]) for item in populated)
+    average = gap / rows
+    if average > 0.02:
+        return "under"
+    if average < -0.02:
+        return "over"
+    return "close"
+
+
+def _within(curve: Optional[dict], delta: float) -> Optional[dict]:
+    """The smallest training size already within ``delta`` macro-F1 of the full corpus.
+
+    The interesting number on a learning curve is rarely where it converges — it is where the
+    remaining gap stops being worth the labelling.
+    """
+    if not curve or not curve["points"]:
+        return None
+    full = curve["points"][-1]["mean_macro_f1"]
+    for point in curve["points"]:
+        if full - point["mean_macro_f1"] <= delta:
+            return {
+                "size": point["size"],
+                "macro_f1": point["mean_macro_f1"],
+                "gap": full - point["mean_macro_f1"],
+                "share_of_corpus": point["size"] / curve["points"][-1]["size"],
+            }
+    return None
+
+
+def _settings() -> Dict[str, str]:
+    """The configuration behind every number, read out of ``config`` rather than described.
+
+    The analogue of publishing the queries: a reader should be able to check the setting a
+    figure rests on without taking a paragraph's word for it, and a value that is printed
+    from the constant cannot drift away from the code the way a prose description does.
+    """
+    return {
+        "dataset": (
+            f"name        {config.DATASET}\n"
+            f"config      {config.DATASET_CONFIG}\n"
+            f"revision    {config.DATASET_REVISION}\n"
+            f"dropped     {config.DROP_LABEL_NAME}  (ambiguous — never merged into another class)\n"
+            f"labels      {', '.join(config.LABEL_NAMES)}\n"
+            f"license     CC BY-NC-SA 4.0 — downloaded on demand, never redistributed here"
+        ),
+        "baseline": (
+            f"tfidf       ngram_range={config.TFIDF_NGRAM_RANGE}  max_features="
+            f"{config.TFIDF_MAX_FEATURES}\n"
+            f"            min_df={config.TFIDF_MIN_DF}  sublinear_tf={config.TFIDF_SUBLINEAR_TF}\n"
+            f"logreg      C={config.LOGREG_C}  max_iter={config.LOGREG_MAX_ITER}  "
+            f"class_weight={config.CLASS_WEIGHT!r}\n"
+            f"seed        {config.RANDOM_STATE}\n"
+            "fitted inside one Pipeline, so the vectorizer never sees the test split"
+        ),
+        "uncertainty": (
+            f"bootstrap   {config.BOOTSTRAP_RESAMPLES} resamples of the test rows, "
+            f"{config.CONFIDENCE_LEVEL:.0%} percentile interval\n"
+            f"paired test exact McNemar on the reviews the two models answer differently\n"
+            f"seed        {config.RANDOM_STATE} — the interval is reproducible from the "
+            "committed predictions"
+        ),
+        "learning-curve": (
+            f"sizes       {', '.join(str(size) for size in config.LEARNING_CURVE_SIZES)}, "
+            "then the full corpus\n"
+            f"seeds       {', '.join(str(seed) for seed in config.LEARNING_CURVE_SEEDS)} per size\n"
+            "sampling    stratified — an unstratified draw of 150 rows can miss the neutral "
+            "class outright"
+        ),
+        "deferral": (
+            f"rates       {', '.join(f'{rate:.0%}' for rate in config.DEFERRAL_RATES)} of the "
+            "test set, least confident first\n"
+            f"calibration {config.CALIBRATION_BINS} equal-width confidence bins\n"
+            f"probe floor {config.MIN_PHENOMENON_N} cases before a cell is read as a rate"
+        ),
+        "commands": (
+            "python -m pl_review_sense.baseline_train   # trains, writes metrics + predictions\n"
+            "python -m pl_review_sense.analysis         # intervals, curve, probe, deferral\n"
+            "python -m pl_review_sense.site             # rebuilds this page into docs/\n"
+            "\n"
+            "notebooks/herbert_colab.ipynb              # the GPU run this page is waiting for"
+        ),
+    }
+
+
+def gather(metrics_dir: Optional[Path] = None) -> dict:
+    """Everything the template needs, read from the committed metrics."""
+    metrics_dir = Path(metrics_dir or config.METRICS_DIR)
+
+    manifest = _read(metrics_dir, config.MANIFEST_PATH.name)
+    if manifest is None:
+        raise FileNotFoundError(
+            f"no manifest in {metrics_dir}; run `python -m pl_review_sense.analysis` first"
+        )
+    baseline_metrics = _read(metrics_dir, config.BASELINE_METRICS_PATH.name)
+    if baseline_metrics is None:
+        raise FileNotFoundError(
+            f"no baseline metrics in {metrics_dir}; run "
+            "`python -m pl_review_sense.baseline_train` first"
+        )
+
+    significance = _read(metrics_dir, config.SIGNIFICANCE_PATH.name)
+    probe = _read(metrics_dir, config.CHALLENGE_PATH.name)
+    deferral = _read(metrics_dir, config.DEFERRAL_PATH.name)
+    curve = _read(metrics_dir, config.LEARNING_CURVE_PATH.name)
+    terms = _read(metrics_dir, config.INTERPRETABILITY_PATH.name)
+    cost = _read(metrics_dir, config.COST_PATH.name)
+    herbert_metrics = _read(metrics_dir, config.HERBERT_METRICS_PATH.name)
+
+    labels = list(baseline_metrics.get("labels", config.LABEL_NAMES))
+    rendered = {
+        "confusion": charts.confusion_chart(
+            baseline_metrics["confusion"], labels, "Confusion matrix, TF-IDF baseline"
+        )
+    }
+
+    if curve:
+        rendered["curve"] = charts.curve_chart(
+            [
+                charts.CurvePoint(
+                    x=point["size"],
+                    value=point["mean_macro_f1"],
+                    low=point["low"],
+                    high=point["high"],
+                )
+                for point in curve["points"]
+            ],
+            "Macro-F1 against training size",
+            x_ticks=[point["size"] for point in curve["points"]],
+            y_floor=_floor(min(point["low"] for point in curve["points"])),
+            x_caption=(
+                f"labelled reviews, log scale · band = spread over "
+                f"{len(curve['seeds'])} stratified draws per size"
+            ),
+        )
+
+    if probe:
+        rendered["probe"] = charts.fraction_chart(
+            [
+                charts.Fraction(
+                    label=row["phenomenon"],
+                    correct=row["correct"],
+                    total=row["total"],
+                    muted=row["thin"],
+                )
+                for row in probe["scores"]
+            ],
+            "Challenge set, answered correctly",
+        )
+
+    if deferral:
+        rendered["reliability"] = charts.reliability_chart(
+            [
+                charts.ReliabilityPoint(
+                    confidence=item["mean_confidence"],
+                    accuracy=item["accuracy"],
+                    count=item["count"],
+                )
+                for item in deferral["bins"]
+                if item["count"]
+            ],
+            "Confidence against accuracy",
+        )
+
+    if terms:
+        for label in labels:
+            rendered[f"terms_{label}"] = charts.bar_chart(
+                [
+                    charts.Bar(
+                        label=item["term"],
+                        value=item["weight"],
+                        value_text=f"{item['weight']:.2f}",
+                    )
+                    for item in terms["per_class"].get(label, [])
+                ],
+                f"Heaviest terms for {label}",
+                # Narrow: these three sit side by side in a column each.
+                width=330,
+                label_width=118,
+            )
+
+    correct, total = _probe_totals(probe)
+    return {
+        "manifest": manifest,
+        "generated": manifest["generated_at"],
+        "headline": _headline(baseline_metrics, probe, significance),
+        "kpis": _kpis(baseline_metrics, significance, probe, deferral, cost),
+        "baseline": baseline_metrics,
+        "labels": labels,
+        "interval": (significance or {}).get("baseline"),
+        "mcnemar": (significance or {}).get("mcnemar"),
+        "herbert": (significance or {}).get("herbert"),
+        "herbert_metrics": herbert_metrics,
+        "curve": curve,
+        "probe": probe,
+        "probe_correct": correct,
+        "probe_total": total,
+        "deferral": deferral,
+        "headline_deferral": HEADLINE_DEFERRAL,
+        "headline_deferral_point": _deferral_point(deferral, HEADLINE_DEFERRAL),
+        "calibration_direction": _calibration_direction(deferral),
+        "curve_within": _within(curve, WITHIN_DELTA),
+        "within_delta": WITHIN_DELTA,
+        "terms": terms,
+        "cost": cost,
+        "smoke_subset": config.SMOKE_SUBSET,
+        "settings": _settings(),
+        "charts": {name: Markup(markup) for name, markup in rendered.items()},
+    }
+
+
+def _floor(value: float) -> float:
+    """Round a score down to the nearest 0.05, for an axis that starts on a readable number."""
+    return max(0.0, int(value * 20) / 20)
+
+
+def _assert_figures_carry_counts(page: dict) -> None:
+    for name, markup in page["charts"].items():
+        if not charts.carries_counts(str(markup)):
+            raise IncompleteFigure(f"chart {name!r} would publish marks without their counts")
+
+
+def render(metrics_dir: Optional[Path] = None) -> str:
+    page = gather(metrics_dir)
+    _assert_figures_carry_counts(page)
+    environment = Environment(
+        loader=FileSystemLoader(TEMPLATE_DIR),
+        autoescape=True,
+        undefined=StrictUndefined,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+    template = environment.get_template("index.html.j2")
+    return template.render(
+        styles=Markup((ASSET_DIR / "styles.css").read_text(encoding="utf-8")), **page
+    )
+
+
+def build(out_dir: Optional[Path] = None, metrics_dir: Optional[Path] = None) -> Path:
+    """Render the page and write it where GitHub Pages serves from."""
+    out_dir = Path(out_dir or config.PUBLISH_DIR)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    target = out_dir / "index.html"
+    # Explicit LF, not the platform's line ending: this file is committed and CI rebuilds it
+    # on another OS, so "the page is a function of the metrics" has to hold across both.
+    with open(target, "w", encoding="utf-8", newline="\n") as page:
+        page.write(render(metrics_dir))
+    return target
