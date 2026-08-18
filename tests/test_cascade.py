@@ -68,6 +68,37 @@ def test_cascade_refuses_predictions_of_different_length():
         cascade.cascade(TRUE, PRED, CONFIDENCE, TRUE[:-1])
 
 
+def test_cascade_of_nothing_is_nothing():
+    """No rows means no operating points — the same answer risk_coverage gives, not a crash."""
+    assert cascade.cascade([], [], [], []) == []
+
+
 def test_deferral_rate_of_one_is_refused():
     with pytest.raises(ValueError):
         cascade.risk_coverage(TRUE, PRED, CONFIDENCE, rates=[1.0])
+    with pytest.raises(ValueError):
+        cascade.risk_coverage(TRUE, PRED, CONFIDENCE, rates=[-0.1])
+
+
+def test_the_deferred_rows_are_the_least_confident_ones_whatever_order_they_arrive_in():
+    """Rows are set aside by confidence, not by position: the ordering is the whole mechanism."""
+    reordered = list(reversed(range(len(TRUE))))
+    true = [TRUE[i] for i in reordered]
+    pred = [PRED[i] for i in reordered]
+    confidence = [CONFIDENCE[i] for i in reordered]
+
+    point = cascade.risk_coverage(true, pred, confidence, rates=[0.3])[0]
+
+    assert point.macro_f1 == pytest.approx(1.0)
+    assert point.threshold == pytest.approx(0.90)
+
+
+def test_equally_confident_rows_are_deferred_in_the_order_they_arrived():
+    """A stable sort, so two runs over the same predictions defer the same reviews."""
+    confidence = [0.5] * len(TRUE)
+
+    first = cascade.risk_coverage(TRUE, PRED, confidence, rates=[0.2])[0]
+    second = cascade.risk_coverage(TRUE, PRED, confidence, rates=[0.2])[0]
+
+    assert first == second
+    assert first.deferred == 2 and first.kept == len(TRUE) - 2
