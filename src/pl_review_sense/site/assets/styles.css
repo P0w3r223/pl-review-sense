@@ -157,12 +157,12 @@ figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 0.35rem; }
 .chart .fill.muted { fill: var(--accent-soft); }
 
 /* Confusion matrix. Intensity is row-normalized — a class with 118 examples and one with 339
-   would otherwise differ in colour because of its size rather than its error rate. */
+   would otherwise differ in colour because of its size rather than its error rate. The label
+   colour never changes: the chart caps how strongly a cell is shaded (see `_CELL_MAX_OPACITY`)
+   precisely so that one colour clears 4.5:1 on every cell, in both schemes. */
 .chart .cell { fill: var(--accent); }
 .chart .cell-text { fill: var(--text); font-size: 12px; }
-.chart .cell-text.on-fill { fill: var(--bg); }
 .chart .cell-share { fill: var(--muted); font-size: 10px; }
-.chart .cell-text.on-fill + .cell-share, .chart .cell-share.on-fill { fill: var(--bg); opacity: 0.8; }
 
 table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
 th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border); }

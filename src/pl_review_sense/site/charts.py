@@ -37,6 +37,13 @@ _PLOT_BASELINE = 200
 # Confusion matrix cells.
 _CELL_WIDTH = 104
 _CELL_HEIGHT = 58
+# The strongest a cell is shaded. The count sits *on* the cell, so the fill has to stay light
+# enough for one label colour to work at every share: a cell shaded to full accent needs pale
+# text, a pale cell needs dark text, and switching between them puts the worst contrast of the
+# whole chart right at the switch — 2.5:1 in the light scheme, measured. Capping the ramp
+# instead keeps a single label colour above 4.5:1 everywhere, in both colour schemes, and the
+# ordering the shading conveys survives being compressed.
+_CELL_MAX_OPACITY = 0.55
 
 
 @dataclass(frozen=True)
@@ -202,13 +209,13 @@ def confusion_chart(matrix: Sequence[Sequence[int]], labels: Sequence[str], titl
             count = matrix[row][column]
             share = count / total
             x = left + column * _CELL_WIDTH
-            on_fill = " on-fill" if share > 0.55 else ""
             parts.append(
                 f'<rect class="cell" x="{x}" y="{y}" width="{_CELL_WIDTH - 4}" '
-                f'height="{_CELL_HEIGHT - 4}" rx="3" fill-opacity="{share:.3f}"></rect>'
-                f'<text class="cell-text{on_fill}" x="{x + _CELL_WIDTH / 2 - 2:.1f}" '
+                f'height="{_CELL_HEIGHT - 4}" rx="3" '
+                f'fill-opacity="{share * _CELL_MAX_OPACITY:.3f}"></rect>'
+                f'<text class="cell-text" x="{x + _CELL_WIDTH / 2 - 2:.1f}" '
                 f'y="{y + _CELL_HEIGHT / 2 - 2:.1f}" text-anchor="middle">{count}</text>'
-                f'<text class="cell-share{on_fill}" x="{x + _CELL_WIDTH / 2 - 2:.1f}" '
+                f'<text class="cell-share" x="{x + _CELL_WIDTH / 2 - 2:.1f}" '
                 f'y="{y + _CELL_HEIGHT / 2 + 14:.1f}" text-anchor="middle">{share:.0%} of row'
                 f"</text>"
             )
