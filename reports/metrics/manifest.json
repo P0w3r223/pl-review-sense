@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-18T10:38:55+00:00",
-  "git_sha": "c25b398",
+  "generated_at": "2026-08-18T11:56:17+00:00",
+  "git_sha": "48e7863",
   "dataset": {
     "name": "clarin-pl/polemo2-official",
     "config": "all_text",
@@ -14,7 +14,7 @@
     "test": 684
   },
   "seed": 42,
-  "herbert_available": false,
+  "herbert_available": true,
   "versions": {
     "python": "3.12.10",
     "scikit_learn": "1.9.0"

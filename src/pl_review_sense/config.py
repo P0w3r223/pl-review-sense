@@ -63,7 +63,15 @@ CLASS_WEIGHT = "balanced"
 HERBERT_MODEL = "allegro/herbert-base-cased"
 HERBERT_MAX_LEN = 256
 HERBERT_EPOCHS = 4
-HERBERT_BATCH_SIZE = 16
+# The batch that reaches the optimizer is BATCH_SIZE * GRAD_ACCUM. Splitting it lets a card
+# with little memory run the same hyperparameters as one with plenty: the gradient is
+# identical, only the number of forward passes between optimizer steps changes.
+# 4 x 4 rather than 16 x 1: the run was done on a 4 GB GTX 1050, where a batch of 16 at 256
+# tokens does not fit (measured: 16 and 8 both out of memory, 4 peaks at 2.37 GB). The
+# optimizer still steps on 16 examples, so the hyperparameter is unchanged — only the number
+# of forward passes between steps is.
+HERBERT_BATCH_SIZE = 4
+HERBERT_GRAD_ACCUM = 4
 HERBERT_LR = 2e-5
 HERBERT_WEIGHT_DECAY = 0.01
 
