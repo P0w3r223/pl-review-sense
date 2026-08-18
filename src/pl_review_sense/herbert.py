@@ -169,8 +169,20 @@ def write_metrics(
     }
     config.METRICS_DIR.mkdir(parents=True, exist_ok=True)
     path = config.HERBERT_METRICS_PATH if representative else config.METRICS_DIR / "herbert_smoke.json"
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    _write_json(path, payload)
     print(f"wrote {path.name}")
+
+
+def _write_json(path, payload: dict) -> None:
+    """Explicit LF, matching what ``analysis`` writes.
+
+    These files are committed and read by CI on another OS. A writer that follows the platform
+    puts CRLF in the working copy while ``.gitattributes`` keeps LF in the repository, and every
+    re-run then reports a change nobody made.
+    """
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(payload, indent=2, ensure_ascii=False))
+        handle.write("\n")
 
 
 def write_predictions(y_true: List[int], y_pred: List[int], representative: bool) -> None:
@@ -194,7 +206,7 @@ def write_predictions(y_true: List[int], y_pred: List[int], representative: bool
         "true": [int(t) for t in y_true],
         "pred": [int(p) for p in y_pred],
     }
-    config.HERBERT_PREDICTIONS_PATH.write_text(json.dumps(payload), encoding="utf-8")
+    _write_json(config.HERBERT_PREDICTIONS_PATH, payload)
     print(f"wrote {config.HERBERT_PREDICTIONS_PATH.name}")
 
 

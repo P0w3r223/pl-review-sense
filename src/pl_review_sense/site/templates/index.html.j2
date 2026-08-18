@@ -119,7 +119,7 @@
   the baseline is right on <strong>{{ mcnemar.only_baseline_correct }}</strong> HerBERT misses,
   and the remaining {{ manifest.splits.test - mcnemar.discordant }} they answer alike. An exact
   McNemar test on those {{ mcnemar.discordant }} disagreements gives
-  <strong>p = {{ '%.4f' | format(mcnemar.p_value) }}</strong>.
+  <strong>p {{ mcnemar_p_text }}</strong>.
 </p>
 {% else %}
 <div class="card pending">
@@ -175,8 +175,19 @@
   {% if cost.model_bytes %}the saved model is
   {{ '%.1f' | format(cost.model_bytes / 1000000) }} MB, and it classifies
   {% else %}and it classifies {% endif %}
-  {{ '%.0f' | format(cost.predict_rows_per_second) }} reviews a second. HerBERT's side of the comparison is a GPU and minutes per epoch, and it stays a
-  description rather than a number until that run happens.
+  {{ '%.0f' | format(cost.predict_rows_per_second) }} reviews a second.
+  {% if herbert_metrics and herbert_metrics.train_seconds %}
+  The other side of the trade, measured on the same task rather than described: fine-tuning
+  HerBERT took <strong>{{ '%.0f' | format(herbert_metrics.train_seconds / 60) }} minutes</strong>
+  on a {{ herbert_metrics.device }}{% if cost_ratio %} — <strong>{{ '%.0f' | format(cost_ratio) }}×</strong>
+  the training time{% endif %}, over {{ herbert_metrics.epochs }} epochs of the same
+  {{ cost.train_rows }} reviews, and it wants that card to serve as well as to train. Whether
+  the difference in score is worth the difference in bill is the question this page exists to
+  put numbers on.
+  {% else %}
+  HerBERT's side of the comparison is a GPU and minutes per epoch, and it stays a description
+  rather than a number until that run happens.
+  {% endif %}
 </p>
 {% endif %}
 {% else %}
@@ -439,6 +450,13 @@
   stayed flat, no threshold built on it would work, whatever the calibration figure said.
 </p>
 {% if deferral.cascade %}
+<h3>And with the transformer behind it</h3>
+<p>
+  The same ordering, but the reviews handed on are answered by HerBERT instead of being set
+  aside. This is the row of the page that decides an actual system: the cheap model runs on
+  everything, the expensive one on the fraction the cheap one is least sure of, and the GPU
+  bill is that fraction rather than all of it.
+</p>
 <table>
   <thead>
     <tr>
@@ -457,6 +475,25 @@
     {% endfor %}
   </tbody>
 </table>
+{% if cascade_highlight %}
+<p>
+  Read the {{ '%.0f%%' | format(cascade_highlight.deferral_rate * 100) }} row. Sending that
+  share of reviews to the GPU — the {{ cascade_highlight.deferred }} the baseline is least sure
+  about — reaches <strong>{{ '%.3f' | format(cascade_highlight.macro_f1) }}</strong> macro-F1,
+  which is {{ '%.0f%%' | format(cascade_highlight.recovered * 100) }} of everything the
+  transformer adds over the baseline, for
+  {{ '%.0f%%' | format(cascade_highlight.deferral_rate * 100) }} of the traffic it would
+  otherwise have to serve. That rate is not picked for the number it produces: it is the
+  smallest one in the table that closes at least
+  {{ '%.0f%%' | format(cascade_gain_target * 100) }} of the gap.
+</p>
+<p class="note">
+  Two things this table is not. It is not a latency argument — the deferred reviews still wait
+  for the transformer, so the tail gets slower, not faster. And the confidence it routes on is
+  the baseline's own, which the calibration figure above says is not a probability; it works
+  here because it <em>ranks</em>, and the ranking is what the first table measured.
+</p>
+{% endif %}
 {% else %}
 <div class="card pending">
   <strong>The cascade needs the second model.</strong> The table above says what the baseline

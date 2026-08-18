@@ -14,9 +14,11 @@ HerBERT transformer**, on PolEmo 2.0, with an honest comparison of accuracy *and
 - Loads **PolEmo 2.0**, drops the `ambiguous` class, and maps the rest to
   **negative / neutral / positive**.
 - Trains a **TF-IDF + logistic-regression** baseline (fast, interpretable, CPU-only).
-- Fine-tunes **HerBERT** (`allegro/herbert-base-cased`) on a **Colab GPU** and compares — as a
+- Fine-tunes **HerBERT** (`allegro/herbert-base-cased`) on a GPU and compares — as a
   **paired McNemar test** on the reviews the two models disagree on, not as two scores side by
   side.
+- Costs the **cascade**: cheap model answers, least-confident share routed to the transformer,
+  so the GPU bill is a fraction of the traffic rather than all of it.
 - Puts a **bootstrap interval** around every score, so the third decimal is not read as a
   finding.
 - Plots a **learning curve**: how much of the score is the corpus rather than the model.
@@ -24,7 +26,8 @@ HerBERT transformer**, on PolEmo 2.0, with an honest comparison of accuracy *and
   contrastive pivots, and a control cell — plus variants with diacritics stripped and typos
   introduced.
 - Measures **calibration and deferral**: what the baseline scores on the reviews it keeps when
-  the least confident share is handed on.
+  the least confident share is handed on, and whether its confidence is usable for routing at
+  all (it ranks well; it is not a probability).
 - Extracts the **heaviest coefficients per class** — the model's own reasons.
 - Serves the baseline via a **FastAPI `/predict`** endpoint.
 
@@ -42,10 +45,21 @@ methodology (built locally from committed metrics; the data/models stay out of g
 
 ## Results (test set)
 
-| model | accuracy | macro-F1 | 95% interval |
-|-------|:--------:|:--------:|:------------:|
-| TF-IDF + logistic regression | 0.940 | **0.944** | 0.926–0.961 |
-| HerBERT (fine-tuned) | *pending — run `notebooks/herbert_colab.ipynb` on a GPU* | | |
+| model | accuracy | macro-F1 | 95% interval | errors / 684 | training |
+|-------|:--------:|:--------:|:------------:|:------------:|:--------:|
+| TF-IDF + logistic regression | 0.940 | 0.944 | 0.926–0.961 | 41 | ~3 s, CPU |
+| HerBERT (fine-tuned) | 0.985 | **0.986** | 0.976–0.994 | **10** | 50 min, GTX 1050 |
+
+**The transformer earns its compute here, and the paired test says so rather than the gap
+between two point estimates.** Both models answer the same 684 reviews; HerBERT is right on 38
+the baseline misses and wrong on 7 it gets, and an exact McNemar test over those 45
+disagreements gives *p* < 0.0001. Four times fewer errors, for roughly **850× the training
+time** and a card that is needed to serve as well as to train.
+
+**But you probably do not have to pay all of it.** The baseline's confidence ranks well enough
+to route on, so a cascade — cheap model answers, least-confident share goes to the GPU —
+reaches **0.980 macro-F1 by sending 20% of reviews to HerBERT**, which is 85% of everything the
+transformer adds for a fifth of the traffic it would otherwise serve.
 
 Per-class baseline F1: negative 0.95, neutral 0.97, positive 0.92. For scale, the floors on the
 same test set: **always the majority class** scores 0.221 macro-F1 at 0.496 accuracy — half the
@@ -142,9 +156,12 @@ python -m pl_review_sense.herbert --smoke   # tiny CPU run that only validates t
   API, and the probe above is the evidence for that rather than a caveat about it.
 - **The probe is a diagnostic, not a benchmark.** Eighty sentences show that a gap exists; they
   do not size it.
-- **HerBERT numbers come from Colab** (no GPU in CI); until that run the comparison and the
-  cascade render as panels stating what is missing. The local `--smoke` run only proves the
+- **HerBERT numbers come from one GPU run** (a GTX 1050, 4 GB, 50 minutes), never from CI,
+  which installs no torch. The batch was split 4×4 to fit the card — the optimizer still steps
+  on 16 examples, so the hyperparameter is unchanged. The local `--smoke` run only proves the
   training code works and is never reported as the result.
+- **The comparison is one test split.** A 0.042 macro-F1 gap on 684 reviews with p < 0.0001 is
+  a real difference on *this* split, not a general fact about the two architectures.
 - **Confidence is not a probability here** — ECE 0.209, under-confident. It ranks well enough
   for a deferral threshold, which is a different claim.
 - Non-commercial data license (CC BY-NC-SA) — fine for this portfolio demo.

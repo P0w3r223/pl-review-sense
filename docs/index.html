@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A macro-F1 of 0.94 that does not survive a short review — pl-review-sense</title>
-<meta name="description" content="The same model answers 48 of 80 one-sentence reviews written for this page — sentences with no rare vocabulary, in the domains it was trained on. The score belongs to the corpus, not to the task its name describes.">
+<title>HerBERT reaches 0.986 against the baseline&#39;s 0.944 — pl-review-sense</title>
+<meta name="description" content="It is right on 38 reviews the baseline misses and wrong on 7 it gets; on 45 disagreements that is a real difference (p &lt; 0.0001). What it costs is further down the page.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="A macro-F1 of 0.94 that does not survive a short review">
-<meta property="og:description" content="The same model answers 48 of 80 one-sentence reviews written for this page — sentences with no rare vocabulary, in the domains it was trained on. The score belongs to the corpus, not to the task its name describes.">
+<meta property="og:title" content="HerBERT reaches 0.986 against the baseline&#39;s 0.944">
+<meta property="og:description" content="It is right on 38 reviews the baseline misses and wrong on 7 it gets; on 45 disagreements that is a real difference (p &lt; 0.0001). What it costs is further down the page.">
 <meta property="og:url" content="https://p0w3r223.github.io/pl-review-sense/">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><text y=%2213%22 font-size=%2213%22>&#128172;</text></svg>">
@@ -224,30 +224,30 @@ footer {
 
 <header>
   <p class="eyebrow">Polish review sentiment · PolEmo 2.0 · 684 test reviews</p>
-  <h1>A macro-F1 of 0.94 that does not survive a short review</h1>
-  <p class="lead">The same model answers 48 of 80 one-sentence reviews written for this page — sentences with no rare vocabulary, in the domains it was trained on. The score belongs to the corpus, not to the task its name describes.</p>
+  <h1>HerBERT reaches 0.986 against the baseline&#39;s 0.944</h1>
+  <p class="lead">It is right on 38 reviews the baseline misses and wrong on 7 it gets; on 45 disagreements that is a real difference (p &lt; 0.0001). What it costs is further down the page.</p>
 </header>
 
 <ul class="kpis">
   <li class="kpi">
-    <div class="kpi-value">0.944</div>
-    <div class="kpi-label">Macro-F1, baseline</div>
-    <div class="kpi-note">95% interval 0.926–0.961 on 684 test reviews</div>
+    <div class="kpi-value">0.986</div>
+    <div class="kpi-label">Macro-F1, HerBERT</div>
+    <div class="kpi-note">95% interval 0.976–0.994, against 0.944 for the baseline</div>
   </li>
   <li class="kpi">
-    <div class="kpi-value">48 / 80</div>
-    <div class="kpi-label">Own probe sentences</div>
-    <div class="kpi-note">short reviews we wrote: a control cell, negation, irony and a pivot</div>
+    <div class="kpi-value">38 / 7</div>
+    <div class="kpi-label">Reviews it settles either way</div>
+    <div class="kpi-note">it is right where the baseline is wrong / wrong where the baseline is right, over 45 disagreements — p &lt; 0.0001</div>
   </li>
   <li class="kpi">
-    <div class="kpi-value">0.974</div>
-    <div class="kpi-label">Macro-F1 on the 90% it keeps</div>
-    <div class="kpi-note">when the least confident 68 reviews are handed on</div>
+    <div class="kpi-value">0.980</div>
+    <div class="kpi-label">Cascade at 20% on the GPU</div>
+    <div class="kpi-note">85% of what the transformer adds, from 137 of 684 reviews</div>
   </li>
   <li class="kpi">
-    <div class="kpi-value">3 s</div>
-    <div class="kpi-label">To train, on a CPU</div>
-    <div class="kpi-note">3.2 MB model  3 888 reviews/s</div>
+    <div class="kpi-value">49 min</div>
+    <div class="kpi-label">What the transformer cost</div>
+    <div class="kpi-note">on a GeForce GTX 1050, against 3 s on a CPU</div>
   </li>
 </ul>
 
@@ -318,21 +318,34 @@ footer {
 </figure>
 
 <h2>Is the transformer better?</h2>
-<div class="card pending">
-  <p>
-    <strong>Waiting for a GPU run.</strong> HerBERT fine-tunes on a free Colab GPU
-    (<code>notebooks/herbert_colab.ipynb</code>); this repository has no representative run yet,
-    so there is no second column and no comparison. The local CPU smoke run is not it — it
-    fine-tunes 200 reviews for one epoch to prove the training code executes,
-    and its numbers are written to a separate file that this page never reads.
-  </p>
-  <p>
-    When that run lands, the comparison here will not be two scores side by side. Both models
-    answer the same 684 reviews, so the evidence is which reviews they
-    disagree on: an exact McNemar test over the disagreements, which can separate models whose
-    intervals overlap and can refuse to separate models whose intervals do not.
-  </p>
-</div>
+<table>
+  <thead>
+    <tr><th>model</th><th class="num">accuracy</th><th class="num">macro-F1</th><th class="num">interval</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>TF-IDF + logistic regression</th>
+      <td class="num">0.940</td>
+      <td class="num">0.944</td>
+      <td class="num">0.926–0.961</td>
+    </tr>
+    <tr>
+      <th>HerBERT, fine-tuned</th>
+      <td class="num">0.985</td>
+      <td class="num">0.986</td>
+      <td class="num">0.976–0.994</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  The intervals are not the comparison. Both models answer the same
+  684 reviews, so the question is which reviews they disagree on:
+  HerBERT is right on <strong>38</strong> the baseline misses,
+  the baseline is right on <strong>7</strong> HerBERT misses,
+  and the remaining 639 they answer alike. An exact
+  McNemar test on those 45 disagreements gives
+  <strong>p &lt; 0.0001</strong>.
+</p>
 
 <h2>How much of this score is data rather than model</h2>
 <p>
@@ -361,12 +374,18 @@ footer {
 </p>
 <p class="note">
   What the cheap side of that trade costs, measured rather than asserted: the full pipeline
-  fits in <strong>3.5 s</strong> on
+  fits in <strong>3.2 s</strong> on
   Intel64 Family 6 Model 158 Stepping 10, GenuineIntel (CPU),
 the saved model is
   3.2 MB, and it classifies
-  3888 reviews a second. HerBERT's side of the comparison is a GPU and minutes per epoch, and it stays a
-  description rather than a number until that run happens.
+  5921 reviews a second.
+  The other side of the trade, measured on the same task rather than described: fine-tuning
+  HerBERT took <strong>49 minutes</strong>
+  on a GeForce GTX 1050 — <strong>927×</strong>
+  the training time, over 4 epochs of the same
+  5264 reviews, and it wants that card to serve as well as to train. Whether
+  the difference in score is worth the difference in bill is the question this page exists to
+  put numbers on.
 </p>
 
 <h2>Where a bag of words slips</h2>
@@ -688,13 +707,70 @@ the saved model is
   reviews are set aside is the evidence that the confidence ranks anything at all — had it
   stayed flat, no threshold built on it would work, whatever the calibration figure said.
 </p>
-<div class="card pending">
-  <strong>The cascade needs the second model.</strong> The table above says what the baseline
-  scores on the reviews it keeps — a statement about one model, publishable today. What the
-  combined system would score depends on how HerBERT answers the reviews handed to it, and
-  those predictions do not exist yet. Nothing here estimates them: a cascade figure computed
-  without the expensive model is a guess wearing three decimal places.
-</div>
+<h3>And with the transformer behind it</h3>
+<p>
+  The same ordering, but the reviews handed on are answered by HerBERT instead of being set
+  aside. This is the row of the page that decides an actual system: the cheap model runs on
+  everything, the expensive one on the fraction the cheap one is least sure of, and the GPU
+  bill is that fraction rather than all of it.
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>handed to HerBERT</th><th class="num">reviews</th>
+      <th class="num">macro-F1, whole test set</th><th class="num">share on the GPU</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0%</th>
+      <td class="num">0</td>
+      <td class="num">0.944</td>
+      <td class="num">0%</td>
+    </tr>
+    <tr>
+      <th>5%</th>
+      <td class="num">34</td>
+      <td class="num">0.961</td>
+      <td class="num">5%</td>
+    </tr>
+    <tr>
+      <th>10%</th>
+      <td class="num">68</td>
+      <td class="num">0.972</td>
+      <td class="num">10%</td>
+    </tr>
+    <tr>
+      <th>20%</th>
+      <td class="num">137</td>
+      <td class="num">0.980</td>
+      <td class="num">20%</td>
+    </tr>
+    <tr>
+      <th>30%</th>
+      <td class="num">205</td>
+      <td class="num">0.983</td>
+      <td class="num">30%</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  Read the 20% row. Sending that
+  share of reviews to the GPU — the 137 the baseline is least sure
+  about — reaches <strong>0.980</strong> macro-F1,
+  which is 85% of everything the
+  transformer adds over the baseline, for
+  20% of the traffic it would
+  otherwise have to serve. That rate is not picked for the number it produces: it is the
+  smallest one in the table that closes at least
+  80% of the gap.
+</p>
+<p class="note">
+  Two things this table is not. It is not a latency argument — the deferred reviews still wait
+  for the transformer, so the tail gets slower, not faster. And the confidence it routes on is
+  the baseline's own, which the calibration figure above says is not a probability; it works
+  here because it <em>ranks</em>, and the ranking is what the first table measured.
+</p>
 
 <h2>Method, and what it cannot tell you</h2>
 <div class="card">
@@ -750,6 +826,16 @@ seed        42
 fitted inside one Pipeline, so the vectorizer never sees the test split</code></pre>
 </details>
 <details>
+  <summary>herbert</summary>
+  <pre><code>model       allegro/herbert-base-cased
+epochs      4  lr=2e-05  weight_decay=0.01
+batch       4 x 4 accumulated = 16 per optimizer step
+max_len     256
+seed        42
+the split batch is a memory accommodation, not a different hyperparameter: what
+reaches the optimizer is the same 16 examples a larger card would pass in one go</code></pre>
+</details>
+<details>
   <summary>uncertainty</summary>
   <pre><code>bootstrap   2000 resamples of the test rows, 95% percentile interval
 paired test exact McNemar on the reviews the two models answer differently
@@ -773,14 +859,15 @@ probe floor 20 cases before a cell is read as a rate</code></pre>
 python -m pl_review_sense.analysis         # intervals, curve, probe, deferral
 python -m pl_review_sense.site             # rebuilds this page into docs/
 
-notebooks/herbert_colab.ipynb              # the GPU run this page is waiting for</code></pre>
+python -m pl_review_sense.herbert          # the GPU run behind the comparison
+notebooks/herbert_colab.ipynb              # the same run on a free Colab card</code></pre>
 </details>
 
 <footer>
   <p>
     Built from metrics generated
-    <time datetime="2026-08-18T10:38:55+00:00">2026-08-18</time> at commit
-    <code>c25b398</code>, scikit-learn 1.9.0,
+    <time datetime="2026-08-18T11:56:17+00:00">2026-08-18</time> at commit
+    <code>48e7863</code>, scikit-learn 1.9.0,
     Python 3.12.10 ·
     <a href="https://github.com/P0w3r223/pl-review-sense">source on GitHub</a> ·
     <a href="https://github.com/P0w3r223/pl-review-sense/blob/main/docs/model-card.md">model card</a> ·

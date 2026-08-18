@@ -397,6 +397,90 @@ def test_build_writes_lf_endings_so_the_drift_check_survives_windows(tmp_path):
     assert b"\r\n" not in target.read_bytes()
 
 
+HERBERT_SIGNIFICANCE = {
+    "baseline": SIGNIFICANCE["baseline"],
+    "floors": SIGNIFICANCE["floors"],
+    "herbert": {
+        "macro_f1": 0.986,
+        "low": 0.976,
+        "high": 0.994,
+        "resamples": 2000,
+        "confidence": 0.95,
+    },
+    "mcnemar": {
+        "only_baseline_correct": 7,
+        "only_herbert_correct": 38,
+        "discordant": 45,
+        "p_value": 3.121e-06,
+    },
+}
+
+CASCADE = [
+    {"deferral_rate": 0.0, "deferred": 0, "macro_f1": 0.944, "accuracy": 0.940,
+     "escalated_share": 0.0},
+    {"deferral_rate": 0.1, "deferred": 68, "macro_f1": 0.972, "accuracy": 0.969,
+     "escalated_share": 0.1},
+    {"deferral_rate": 0.2, "deferred": 137, "macro_f1": 0.980, "accuracy": 0.978,
+     "escalated_share": 0.2},
+    {"deferral_rate": 0.3, "deferred": 205, "macro_f1": 0.984, "accuracy": 0.983,
+     "escalated_share": 0.3},
+]
+
+
+def test_a_vanishing_p_value_is_reported_as_a_bound_not_as_zero():
+    """'p = 0.0000' claims something no test does."""
+    assert build._p_text(3.121e-06) == "< 0.0001"
+    assert build._p_text(0.0031) == "= 0.0031"
+    assert build._p_text(0.72) == "= 0.7200"
+
+
+def test_the_quoted_cascade_rate_is_the_cheapest_that_closes_most_of_the_gap():
+    deferral = {**DEFERRAL, "cascade": CASCADE}
+
+    highlight = build._cascade_highlight(deferral, HERBERT_SIGNIFICANCE)
+
+    # 10% recovers (0.972-0.944)/(0.986-0.944) = 67%, under the 80% target; 20% recovers 86%.
+    assert highlight["deferral_rate"] == pytest.approx(0.2)
+    assert highlight["recovered"] > build.CASCADE_GAIN_TARGET
+
+
+def test_no_cascade_rate_is_quoted_when_none_recovers_most_of_the_gap():
+    weak = [dict(point, macro_f1=0.950) for point in CASCADE]
+
+    assert build._cascade_highlight({**DEFERRAL, "cascade": weak}, HERBERT_SIGNIFICANCE) is None
+
+
+def test_no_cascade_is_quoted_before_the_second_model_exists():
+    assert build._cascade_highlight(DEFERRAL, SIGNIFICANCE) is None
+    assert build._cascade_highlight(None, HERBERT_SIGNIFICANCE) is None
+
+
+def test_the_kpi_row_switches_to_the_comparison_once_the_transformer_has_run(tmp_path):
+    herbert_metrics = {
+        "macro_f1": 0.986, "accuracy": 0.985, "train_seconds": 3000.0,
+        "device": "GeForce GTX 1050", "epochs": 4, "effective_batch": 16, "max_len": 256,
+        "per_class": BASELINE["per_class"], "confusion": BASELINE["confusion"],
+        "labels": BASELINE["labels"], "representative": True, "run": "full", "model": "herbert",
+    }
+    html = build.render(
+        _metrics_dir(
+            tmp_path,
+            **{
+                config.SIGNIFICANCE_PATH.name: HERBERT_SIGNIFICANCE,
+                config.DEFERRAL_PATH.name: {**DEFERRAL, "cascade": CASCADE},
+                config.HERBERT_METRICS_PATH.name: herbert_metrics,
+            },
+        )
+    )
+
+    assert "Macro-F1, HerBERT" in html
+    assert "0.986" in html
+    assert "p &lt; 0.0001" in html, "a vanishing p-value is a bound, not a zero"
+    assert "Cascade at 20% on the GPU" in html
+    assert "50 min" in html and "GeForce GTX 1050" in html
+    assert "card pending" not in html, "nothing is waiting once both models have run"
+
+
 def test_a_figure_without_its_counts_is_not_publishable():
     page = {"charts": {"invented": "<svg><rect></rect></svg>"}}
     with pytest.raises(build.IncompleteFigure):
