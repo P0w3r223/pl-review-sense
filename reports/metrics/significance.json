@@ -18,6 +18,17 @@
       "accuracy": 0.3669590643274854
     }
   ],
-  "herbert": null,
-  "mcnemar": null
+  "herbert": {
+    "macro_f1": 0.9859605104630896,
+    "low": 0.9758980632099598,
+    "high": 0.9942397100223108,
+    "resamples": 2000,
+    "confidence": 0.95
+  },
+  "mcnemar": {
+    "only_baseline_correct": 7,
+    "only_herbert_correct": 38,
+    "discordant": 45,
+    "p_value": 3.1213096463034162e-06
+  }
 }

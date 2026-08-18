@@ -114,5 +114,41 @@
       "accuracy": 0.9958246346555324
     }
   ],
-  "cascade": []
+  "cascade": [
+    {
+      "deferral_rate": 0.0,
+      "deferred": 0,
+      "macro_f1": 0.9439412539882738,
+      "accuracy": 0.9400584795321637,
+      "escalated_share": 0.0
+    },
+    {
+      "deferral_rate": 0.05,
+      "deferred": 34,
+      "macro_f1": 0.9611030244218016,
+      "accuracy": 0.9576023391812866,
+      "escalated_share": 0.049707602339181284
+    },
+    {
+      "deferral_rate": 0.1,
+      "deferred": 68,
+      "macro_f1": 0.971867540769836,
+      "accuracy": 0.9692982456140351,
+      "escalated_share": 0.09941520467836257
+    },
+    {
+      "deferral_rate": 0.2,
+      "deferred": 137,
+      "macro_f1": 0.9798430639510669,
+      "accuracy": 0.9780701754385965,
+      "escalated_share": 0.20029239766081872
+    },
+    {
+      "deferral_rate": 0.3,
+      "deferred": 205,
+      "macro_f1": 0.9834959183713808,
+      "accuracy": 0.9824561403508771,
+      "escalated_share": 0.2997076023391813
+    }
+  ]
 }
