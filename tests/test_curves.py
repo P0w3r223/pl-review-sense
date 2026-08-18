@@ -39,6 +39,33 @@ def test_stratified_subsample_is_reproducible_and_seed_dependent():
     )
 
 
+@pytest.mark.parametrize(
+    "labels",
+    [
+        [0] * 36 + [1] * 6 + [2] * 18,  # PolEmo's shape
+        [0] * 100 + [1] + [2],  # one class almost alone: rounding has to give and take
+        [0] * 50 + [1] * 49 + [2],
+        [0] * 20 + [1] * 20 + [2] * 20,  # balanced
+    ],
+)
+@pytest.mark.parametrize("size", [3, 4, 5, 7, 11, 30])
+def test_stratified_subsample_returns_exactly_the_size_it_was_asked_for(labels, size):
+    """The size labels a curve point. A subsample of 5 reported as 4 mislabels the whole point."""
+    index = curves.stratified_indices(labels, size, seed=0)
+
+    assert len(index) == size
+    assert len(set(index)) == size, "no row is drawn twice"
+    assert set(index) <= set(range(len(labels)))
+
+
+def test_stratified_subsample_never_takes_more_of_a_class_than_exists():
+    labels = [0] * 100 + [1] + [2]
+    index = curves.stratified_indices(labels, 8, seed=0)
+
+    drawn = [labels[i] for i in index]
+    assert drawn.count(1) <= 1 and drawn.count(2) <= 1
+
+
 def test_stratified_subsample_returns_everything_when_asked_for_more_than_it_has():
     assert curves.stratified_indices(LABELS, 500, seed=0) == list(range(len(LABELS)))
 

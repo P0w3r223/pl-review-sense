@@ -116,6 +116,52 @@ def test_calibration_puts_full_confidence_in_the_top_bin():
     assert populated[0].count == 2
 
 
+def test_calibration_puts_a_confidence_on_a_bin_edge_in_the_lower_bin():
+    """Bins are right-closed: 0.7 belongs to 0.6–0.7, not to the bin that starts at it."""
+    calibration = stats.calibrate([0.7], [True], bins=10)
+
+    populated = [item for item in calibration.bins if item.count]
+    assert len(populated) == 1
+    assert populated[0].upper == pytest.approx(0.7)
+
+
+def test_calibration_spans_every_bin_it_was_asked_for_even_the_empty_ones():
+    """The reliability chart drops the empty bins itself; ECE needs them to stay countable."""
+    calibration = stats.calibrate([0.05, 0.95], [True, True], bins=10)
+
+    assert len(calibration.bins) == 10
+    assert [item.count for item in calibration.bins] == [1, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+    assert calibration.bins[3].mean_confidence == 0.0, "an empty bin claims nothing"
+
+
+def test_calibration_weights_the_gap_by_how_many_rows_sit_in_each_bin():
+    # 90 rows claiming 0.95 and right every time; 10 claiming 0.15 and right every time.
+    confidences = [0.95] * 90 + [0.15] * 10
+    correct = [True] * 100
+
+    calibration = stats.calibrate(confidences, correct)
+
+    expected = (90 * abs(1.0 - 0.95) + 10 * abs(1.0 - 0.15)) / 100
+    assert calibration.expected_error == pytest.approx(expected)
+
+
+def test_calibration_of_nothing_is_no_error_rather_than_a_crash():
+    calibration = stats.calibrate([], [])
+    assert calibration.bins == [] and calibration.expected_error == 0.0
+
+
+def test_a_wider_confidence_level_gives_a_wider_interval():
+    y_true = [0, 1, 2] * 40
+    y_pred = [0, 1, 2] * 35 + [1, 2, 0] * 5
+
+    narrow = stats.bootstrap_macro_f1(y_true, y_pred, resamples=300, confidence=0.80)
+    wide = stats.bootstrap_macro_f1(y_true, y_pred, resamples=300, confidence=0.99)
+
+    assert wide.width > narrow.width
+    assert wide.low <= narrow.low and narrow.high <= wide.high
+    assert narrow.point == pytest.approx(wide.point), "only the tails move, not the estimate"
+
+
 def test_calibration_rejects_mismatched_input():
     with pytest.raises(ValueError):
         stats.calibrate([0.5, 0.6], [True])
