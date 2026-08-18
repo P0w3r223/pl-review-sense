@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from dataclasses import asdict, dataclass
 from typing import List, Optional, Tuple
 
@@ -27,10 +28,19 @@ from .data import Dataset, Split, load_polemo
 @dataclass(frozen=True)
 class TrainArgs:
     epochs: int
-    batch_size: int
+    batch_size: int  # what fits in memory at once
     max_len: int
     subset: Optional[int]  # cap the training set (smoke); None = full
     output_dir: str
+    # Micro-batches accumulated before each optimizer step. The quantity that matters to the
+    # result is ``batch_size * grad_accum`` — the effective batch — and it is held fixed while
+    # ``batch_size`` is dropped to whatever the card has memory for. On a 4 GB GPU that is the
+    # difference between running the configured hyperparameters and not running at all.
+    grad_accum: int = 1
+
+    @property
+    def effective_batch(self) -> int:
+        return self.batch_size * self.grad_accum
 
 
 def smoke_args() -> TrainArgs:
@@ -50,6 +60,7 @@ def full_args() -> TrainArgs:
         max_len=config.HERBERT_MAX_LEN,
         subset=None,
         output_dir=str(config.MODELS_DIR / "herbert"),
+        grad_accum=config.HERBERT_GRAD_ACCUM,
     )
 
 
@@ -111,6 +122,7 @@ def fine_tune(data: Dataset, args: TrainArgs) -> Tuple[evaluate.EvalResult, List
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
+        gradient_accumulation_steps=args.grad_accum,
         learning_rate=config.HERBERT_LR,
         weight_decay=config.HERBERT_WEIGHT_DECAY,
         logging_steps=50,
@@ -126,9 +138,20 @@ def fine_tune(data: Dataset, args: TrainArgs) -> Tuple[evaluate.EvalResult, List
     return evaluate.evaluate(data.test.labels, y_pred), y_pred
 
 
-def write_metrics(result: evaluate.EvalResult, run: str, representative: bool) -> None:
+def write_metrics(
+    result: evaluate.EvalResult,
+    run: str,
+    representative: bool,
+    train_seconds: Optional[float] = None,
+    device: Optional[str] = None,
+) -> None:
     """Write HerBERT metrics. Only a representative run becomes the headline ``herbert.json``;
-    anything else (a smoke run, or a full run without a GPU) goes to ``herbert_smoke.json``."""
+    anything else (a smoke run, or a full run without a GPU) goes to ``herbert_smoke.json``.
+
+    The training time and the card it ran on are recorded with the score. This project compares
+    two models on accuracy *and* on what they cost, and a transformer's side of that comparison
+    was prose until someone actually ran it.
+    """
     payload = {
         "model": "herbert",
         "run": run,
@@ -138,6 +161,11 @@ def write_metrics(result: evaluate.EvalResult, run: str, representative: bool) -
         "per_class": [asdict(c) for c in result.per_class],
         "confusion": result.confusion,
         "labels": list(config.LABEL_NAMES),
+        "train_seconds": train_seconds,
+        "device": device,
+        "epochs": config.HERBERT_EPOCHS,
+        "effective_batch": config.HERBERT_BATCH_SIZE * config.HERBERT_GRAD_ACCUM,
+        "max_len": config.HERBERT_MAX_LEN,
     }
     config.METRICS_DIR.mkdir(parents=True, exist_ok=True)
     path = config.HERBERT_METRICS_PATH if representative else config.METRICS_DIR / "herbert_smoke.json"
@@ -186,19 +214,23 @@ def main(argv=None) -> None:
     run = "smoke" if args.smoke else "full"
 
     data = load_polemo()
+    started = time.perf_counter()
     result, y_pred = fine_tune(data, train_args)
+    elapsed = time.perf_counter() - started
 
     # "Representative" means a real full run on a GPU — never merely "no --smoke flag". A full
     # run on CPU is just as unrepresentative as the smoke run, so it must not become the headline.
     import torch
 
     representative = (not args.smoke) and torch.cuda.is_available()
+    device = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
 
     print(f"[{run}] accuracy={result.accuracy:.4f}  macro_f1={result.macro_f1:.4f}")
+    print(f"[{run}] {elapsed / 60:.1f} min on {device}")
     if not representative:
         print("NOTE: non-representative run (smoke or no GPU) — not written as the headline "
               "result. Run notebooks/herbert_colab.ipynb on a GPU for real numbers.")
-    write_metrics(result, run, representative)
+    write_metrics(result, run, representative, train_seconds=round(elapsed, 1), device=device)
     write_predictions(data.test.labels, y_pred, representative)
 
 
