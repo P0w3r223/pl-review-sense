@@ -11,17 +11,24 @@ plus modern deep learning (Hugging Face), with honest, methodical comparison.
 ## Architecture
 ```
 src/pl_review_sense/
-  config.py         # dataset, label scheme, paths, model hyperparameters (no I/O)
+  config.py         # dataset, label scheme, paths, hyperparameters, thresholds (no I/O)
   data.py           # load PolEmo, drop 'ambiguous', map to negative/neutral/positive
   baseline.py       # TF-IDF + logistic-regression pipeline (train/predict/save/load)
   baseline_train.py # `python -m pl_review_sense.baseline_train` — train + evaluate + save
   evaluate.py       # macro-F1, per-class metrics, confusion matrix, error extraction (pure)
+  stats.py          # bootstrap intervals, exact McNemar, calibration/ECE (pure)
+  curves.py         # learning curve + stratified subsampling; the fit is injected (pure)
+  challenge.py      # probe variants (diacritics, typos) and scoring (pure)
+  challenge_set.py  # the 80 hand-written Polish probe sentences — our text, never PolEmo
+  cascade.py        # risk–coverage for one model, cascade for two (pure)
+  interpret.py      # heaviest coefficients per class (pure + a pipeline adapter)
+  analysis.py       # `python -m pl_review_sense.analysis` — the only writer of reports/metrics/
   herbert.py        # HerBERT fine-tuning (Trainer) + `--smoke` CPU mode; torch imports guarded
-  report.py         # standalone HTML report -> docs/ (GitHub Pages)
+  site/             # `python -m pl_review_sense.site` — Jinja template, styles.css, SVG charts
 api/                # FastAPI /predict serving the baseline
 notebooks/          # EDA + models notebook; self-contained Colab HerBERT notebook
 tests/              # pytest
-docs/research/      # data + methodology
+docs/               # published page, adr/, model-card.md, research/
 ```
 
 ## Methodology rules (do not violate)
@@ -32,8 +39,20 @@ docs/research/      # data + methodology
   evaluate on the untouched test split.
 - **HerBERT trains on GPU (Colab).** The local `--smoke` run only proves the code path works; its
   numbers are non-representative and never presented as the model's result.
-- **Separate I/O from logic.** `data`/`baseline`/`evaluate`/`report` stay pure and unit-tested;
-  network/disk live in `*_train`, `herbert`, `api`, and the report writer.
+- **Separate I/O from logic.** `data`/`baseline`/`evaluate`/`stats`/`curves`/`challenge`/
+  `cascade`/`interpret` stay pure and unit-tested; network and disk live in `*_train`,
+  `analysis`, `herbert`, `api`, and `site/build`.
+- **No score without its interval, no comparison without the paired test.** A macro-F1 printed
+  to three decimals invites a comparison 684 test rows cannot support; models are compared with
+  exact McNemar over their disagreements, never by which point estimate is larger.
+- **Every figure carries its n.** The site build raises `IncompleteFigure` rather than
+  publishing marks whose counts are not stated.
+- **The page is a function of `reports/metrics/`.** No wall clock, no dataset, no model at build
+  time; CI diffs the rebuilt page against the committed one. Never hand-edit `docs/index.html`.
+- **A panel with no evidence says so.** Anything waiting on the GPU run renders as a panel
+  explaining what is missing — never as an estimate, a placeholder number, or a hidden section.
+- **The challenge set is ours and stays balanced.** No PolEmo text; every cell keeps both
+  directions of its phenomenon so no single answer can win it (tests enforce the 60% ceiling).
 
 ## Conventions
 - English for code, comments, README, commits. Conventional Commits.
@@ -47,7 +66,8 @@ docs/research/      # data + methodology
 .venv/Scripts/python -m pip install -r requirements.txt      # core + dev (no torch)
 pytest
 python -m pl_review_sense.baseline_train                     # downloads PolEmo, trains baseline
-python -m pl_review_sense.report                             # build the static site
+python -m pl_review_sense.analysis                           # writes reports/metrics/*.json
+python -m pl_review_sense.site                               # build the static site into docs/
 uvicorn api.main:app --reload                                # POST /predict {"text": "..."}
 
 # HerBERT: real run on Colab GPU (notebooks/herbert_colab.ipynb). Local code-path check:
