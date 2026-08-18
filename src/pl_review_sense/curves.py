@@ -74,14 +74,21 @@ def stratified_indices(labels: Sequence[int], size: int, seed: int) -> List[int]
     exact = {label: size * len(by_class[label]) / len(labels) for label in classes}
     quota = {label: max(1, int(exact[label])) for label in classes}
     # Hand the rounding remainder to the classes that lost the most to flooring, largest
-    # first, so the shortfall lands where it distorts the proportions least.
+    # first, so the shortfall lands where it distorts the proportions least. Only classes with
+    # rows left to give are candidates, in either direction: picking one that is already at its
+    # pool size — or already down to its floor of one — would leave the total off by that much
+    # and quietly return a subsample of the wrong size.
     while sum(quota.values()) < size:
-        label = max(classes, key=lambda name: (exact[name] - quota[name], len(by_class[name])))
+        candidates = [label for label in classes if quota[label] < len(by_class[label])]
+        if not candidates:
+            break  # unreachable while size < len(labels); a guard, not a branch
+        label = max(candidates, key=lambda name: (exact[name] - quota[name], len(by_class[name])))
         quota[label] += 1
     while sum(quota.values()) > size:
-        label = max(classes, key=lambda name: (quota[name] - exact[name], len(by_class[name])))
-        if quota[label] <= 1:
-            break
+        candidates = [label for label in classes if quota[label] > 1]
+        if not candidates:
+            break  # unreachable: one row per class is at most `size`, checked above
+        label = max(candidates, key=lambda name: (quota[name] - exact[name], len(by_class[name])))
         quota[label] -= 1
 
     rng = np.random.default_rng(seed)
@@ -145,9 +152,10 @@ def learning_curve(
 def reaches(points: Sequence[CurvePoint], share_of_full: float) -> int | None:
     """The smallest training size whose mean already reaches ``share`` of the full-corpus score.
 
-    This is the number the page leads with — "nine tenths of the score for a fifth of the
-    labelling" is a claim about a size, and it has to come from the data rather than from
-    someone reading the chart.
+    Reported in ``learning_curve.json`` as a strict reading of the curve: at 99% of the full
+    score it answers "where does this stop improving". The page quotes a looser one — the first
+    size within a fixed macro-F1 distance of the full corpus — because the question a reader
+    brings is where the remaining gap stops being worth the labelling, not where it closes.
     """
     if not points:
         return None

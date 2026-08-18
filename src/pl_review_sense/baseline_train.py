@@ -63,7 +63,9 @@ def main() -> None:
     pipe = baseline.train(data.train.texts, data.train.labels)
     proba = baseline.predict_proba(pipe, data.test.texts)
     # Predict from the probabilities rather than calling `predict` separately: the label and
-    # the confidence published beside it then cannot disagree about the same review.
+    # the confidence published beside it then cannot disagree about the same review. Reading the
+    # column index as the label holds because `load_polemo` refuses a training split whose labels
+    # are not exactly {0, 1, 2}, so the classifier's classes are those three in that order.
     y_pred = [max(range(len(row)), key=lambda i: row[i]) for row in proba]
     result = evaluate.evaluate(data.test.labels, y_pred)
     print(f"accuracy={result.accuracy:.4f}  macro_f1={result.macro_f1:.4f}")

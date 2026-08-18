@@ -17,6 +17,11 @@ from dataclasses import dataclass
 from html import escape
 from typing import Sequence
 
+# What a figure with nothing to draw renders as. The class is load-bearing, not decoration:
+# `carries_counts` uses it to tell "drew no marks" apart from "drew marks without their counts",
+# which are opposite failures and only the second one should stop a build.
+EMPTY_MARKER = 'class="note empty"'
+
 _WIDTH = 720
 _ROW_HEIGHT = 26
 _LABEL_WIDTH = 150
@@ -100,7 +105,7 @@ def bar_chart(
     column arrives with four-pixel labels.
     """
     if not bars:
-        return '<p class="note">Nothing to plot.</p>'
+        return '<p class="note empty">Nothing to plot.</p>'
 
     largest = max((bar.value for bar in bars), default=1) or 1
     # Room at the right for the value. A note beside it needs roughly twice as much.
@@ -133,7 +138,7 @@ def fraction_chart(items: Sequence[Fraction], title: str) -> str:
     because twenty sentences do not support a rate.
     """
     if not items:
-        return '<p class="note">The probe has not been scored.</p>'
+        return '<p class="note empty">The probe has not been scored.</p>'
 
     largest = max(item.total for item in items) or 1
     plot_width = _WIDTH - _LABEL_WIDTH - 150
@@ -169,7 +174,7 @@ def confusion_chart(matrix: Sequence[Sequence[int]], labels: Sequence[str], titl
     number never have to be reconciled by eye.
     """
     if not matrix:
-        return '<p class="note">No confusion matrix in the committed metrics.</p>'
+        return '<p class="note empty">No confusion matrix in the committed metrics.</p>'
 
     left = 96
     top = 46
@@ -229,7 +234,7 @@ def curve_chart(
     every difference. Stating the floor is the compromise that is neither.
     """
     if not points:
-        return '<p class="note">The curve has not been computed.</p>'
+        return '<p class="note empty">The curve has not been computed.</p>'
 
     plot_width = _WIDTH - _PLOT_LEFT - _PLOT_RIGHT
     span = _PLOT_BASELINE - _PLOT_TOP
@@ -295,7 +300,7 @@ def reliability_chart(points: Sequence[ReliabilityPoint], title: str) -> str:
     below 0.7" would escalate a band this model gets entirely right.
     """
     if not points:
-        return '<p class="note">No calibration bins in the committed metrics.</p>'
+        return '<p class="note empty">No calibration bins in the committed metrics.</p>'
 
     size = 210
     left = 46
@@ -343,5 +348,11 @@ def carries_counts(markup: str) -> bool:
 
     Checked structurally rather than by wording: matching on a phrase would pass the day
     someone rephrases a label and silently ship an unlabelled chart.
+
+    A panel that drew nothing passes: it has no marks to label, and it is already saying so in
+    words. Failing it would turn "there is no evidence for this yet" — the state this page is
+    built to render honestly — into a build crash.
     """
+    if EMPTY_MARKER in markup:
+        return True
     return 'class="bar-value"' in markup or 'class="cell-text' in markup

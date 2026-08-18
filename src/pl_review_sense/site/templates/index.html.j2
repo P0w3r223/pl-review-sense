@@ -133,7 +133,7 @@
   same pipeline is refit from scratch on stratified subsamples of the training split and
   scored on the untouched test split every time.
 </p>
-{% if curve %}
+{% if curve and curve.points %}
 <figure>
   <div class="chart-wrap">{{ charts.curve }}</div>
   <figcaption>
@@ -159,8 +159,10 @@
 <p class="note">
   What the cheap side of that trade costs, measured rather than asserted: the full pipeline
   fits in <strong>{{ '%.1f' | format(cost.train_seconds) }} s</strong> on
-  {{ cost.machine }} ({{ cost.device }}), the saved model is
+  {{ cost.machine }} ({{ cost.device }}),
+  {% if cost.model_bytes %}the saved model is
   {{ '%.1f' | format(cost.model_bytes / 1000000) }} MB, and it classifies
+  {% else %}and it classifies {% endif %}
   {{ '%.0f' | format(cost.predict_rows_per_second) }} reviews a second. HerBERT's side of the comparison is a GPU and minutes per epoch, and it stays a
   description rather than a number until that run happens.
 </p>
@@ -196,6 +198,20 @@
     to them.
   </figcaption>
 </figure>
+<table>
+  <thead>
+    <tr><th>cell</th><th>what it holds</th><th class="num">correct</th></tr>
+  </thead>
+  <tbody>
+    {% for row in probe.scores %}
+    <tr>
+      <th>{{ row.phenomenon }}</th>
+      <td>{{ row.note }}</td>
+      <td class="num">{{ row.correct }} / {{ row.total }}{% if row.thin %} <span class="hint">below the floor for a rate</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 <p>
   The cells are built so that no single answer can win them. Every ironic sentence has a
   genuine counterpart in the same enthusiastic register, down to minimal pairs — "bateria

@@ -8,3 +8,4 @@ docs/index.html text eol=lf
 # reason: a file that changes line endings on checkout is a file the page silently disagrees
 # with.
 reports/metrics/*.json text eol=lf
+reports/predictions/*.json text eol=lf

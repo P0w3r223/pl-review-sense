@@ -77,6 +77,9 @@ SMOKE_MAX_LEN = 128
 # two models are actually apart. Percentile bootstrap over the test rows.
 BOOTSTRAP_RESAMPLES = 2_000
 CONFIDENCE_LEVEL = 0.95
+# Where the paired test stops calling a difference chance. Conventional, and stated once so the
+# page and any later analysis cannot disagree about what "significant" meant.
+SIGNIFICANCE_LEVEL = 0.05
 
 # --- Learning curve ----------------------------------------------------------
 # Absolute training sizes, because "how many labelled reviews do I need" is the question a
@@ -87,6 +90,9 @@ LEARNING_CURVE_SEEDS = (0, 1, 2, 3, 4)
 
 # --- Calibration and deferral ------------------------------------------------
 CALIBRATION_BINS = 10
+# How far the average confidence may sit from the average accuracy before the page calls the
+# model over- or under-confident rather than roughly honest.
+CALIBRATION_TOLERANCE = 0.02
 # Shares of the test set handed onward, lowest confidence first. 0.0 is kept deliberately:
 # it is the no-deferral reference every other row is read against.
 DEFERRAL_RATES = (0.0, 0.05, 0.10, 0.20, 0.30)

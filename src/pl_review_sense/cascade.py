@@ -126,6 +126,8 @@ def cascade(
     scores = np.asarray(confidences, dtype=np.float64)
     if not (true.shape == cheap.shape == expensive.shape == scores.shape):
         raise ValueError("all four arrays must describe the same test rows, in the same order")
+    if true.size == 0:
+        return []  # same answer as risk_coverage on nothing: no rows, no operating points
 
     n_labels = len(config.LABEL_NAMES)
     order = _order_by_confidence(scores)

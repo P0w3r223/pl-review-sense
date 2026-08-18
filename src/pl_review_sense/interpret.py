@@ -15,7 +15,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, List, Sequence
 
-from . import config
+from sklearn.pipeline import Pipeline
+
+from . import baseline, config
 
 
 @dataclass(frozen=True)
@@ -56,8 +58,10 @@ def top_terms(
     return ranked
 
 
-def from_pipeline(pipeline, top_n: int = config.TOP_TERMS_PER_CLASS) -> Dict[str, List[Term]]:
+def from_pipeline(
+    pipeline: Pipeline, top_n: int = config.TOP_TERMS_PER_CLASS
+) -> Dict[str, List[Term]]:
     """Pull the vocabulary and coefficients out of the fitted baseline pipeline."""
-    vectorizer = pipeline.named_steps["tfidf"]
-    classifier = pipeline.named_steps["clf"]
+    vectorizer = pipeline.named_steps[baseline.VECTORIZER_STEP]
+    classifier = pipeline.named_steps[baseline.CLASSIFIER_STEP]
     return top_terms(list(vectorizer.get_feature_names_out()), classifier.coef_, top_n)
