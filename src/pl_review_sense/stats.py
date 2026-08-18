@@ -69,6 +69,59 @@ class Calibration:
     expected_error: float  # ECE: mean gap between confidence and accuracy, weighted by count
 
 
+@dataclass(frozen=True)
+class Floor:
+    """What a model that has learned nothing scores on this test set."""
+
+    name: str
+    macro_f1: float
+    accuracy: float
+
+
+def reference_floors(
+    train_labels: Sequence[int],
+    y_true: Sequence[int],
+    seed: int = config.RANDOM_STATE,
+) -> List[Floor]:
+    """The scores to read 0.944 against.
+
+    A macro-F1 quoted alone is a number without a scale: a reader cannot tell whether the task
+    is hard from the score of the only model on the page. Two floors, both fitted on the
+    training prior and evaluated on the same test rows as everything else:
+
+    * **always the majority class** — the strongest thing that can be said without a model, and
+      the reason accuracy is the wrong headline metric here: it scores respectably on accuracy
+      and badly on macro-F1, which is exactly the failure macro-F1 exists to expose.
+    * **random, matching the training prior** — chance for this label distribution.
+    """
+    true = np.asarray(y_true, dtype=np.int64)
+    if true.size == 0:
+        raise ValueError("cannot score a floor against an empty test set")
+
+    n_labels = len(config.LABEL_NAMES)
+    counts = np.bincount(np.asarray(train_labels, dtype=np.int64), minlength=n_labels)
+    if counts.sum() == 0:
+        raise ValueError("the training labels carry no rows to take a prior from")
+    prior = counts / counts.sum()
+
+    majority = np.full(true.size, int(np.argmax(counts)), dtype=np.int64)
+    rng = np.random.default_rng(seed)
+    sampled = rng.choice(n_labels, size=true.size, p=prior)
+
+    return [
+        Floor(
+            name="always the majority class",
+            macro_f1=macro_f1(true, majority, n_labels),
+            accuracy=float(np.mean(true == majority)),
+        ),
+        Floor(
+            name="random, matching the training prior",
+            macro_f1=macro_f1(true, sampled, n_labels),
+            accuracy=float(np.mean(true == sampled)),
+        ),
+    ]
+
+
 def macro_f1(y_true: Sequence[int], y_pred: Sequence[int], n_labels: int) -> float:
     """Macro-F1 over a fixed label set, with empty classes scoring 0 rather than vanishing.
 

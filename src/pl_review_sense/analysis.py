@@ -20,7 +20,7 @@ import subprocess
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 from . import (
     baseline,
@@ -30,6 +30,7 @@ from . import (
     config,
     curves,
     interpret,
+    segments,
     stats,
 )
 from .data import load_polemo
@@ -101,8 +102,10 @@ def _load_predictions(path: Path) -> Optional[dict]:
     return payload
 
 
-def significance(baseline_rows: dict, herbert_rows: Optional[dict]) -> dict:
-    """The interval around the baseline, and the paired test against HerBERT when it exists."""
+def significance(
+    baseline_rows: dict, herbert_rows: Optional[dict], train_labels: Sequence[int]
+) -> dict:
+    """The interval around the baseline, the floors it is read against, and the paired test."""
     interval = stats.bootstrap_macro_f1(baseline_rows["true"], baseline_rows["pred"])
     payload = {
         "baseline": {
@@ -112,6 +115,10 @@ def significance(baseline_rows: dict, herbert_rows: Optional[dict]) -> dict:
             "resamples": interval.resamples,
             "confidence": interval.confidence,
         },
+        "floors": [
+            {"name": floor.name, "macro_f1": floor.macro_f1, "accuracy": floor.accuracy}
+            for floor in stats.reference_floors(train_labels, baseline_rows["true"])
+        ],
         "herbert": None,
         "mcnemar": None,
     }
@@ -158,6 +165,13 @@ def probe(pipeline) -> dict:
         for case, guess in zip(everything, predicted)
         if guess != case.label
     ]
+    # Where a cell's misses go, not just how many there are. "11 of 20 on irony" is consistent
+    # with a model that cannot read irony and with one that answers negative to everything; the
+    # direction of the errors tells the two apart, and it is a count, not a sentence.
+    directions: dict[tuple[str, str, str], int] = {}
+    for miss in misses:
+        key = (miss["phenomenon"], miss["gold"], miss["predicted"])
+        directions[key] = directions.get(key, 0) + 1
     return {
         "base_cases": len(cases),
         "derived_cases": len(everything) - len(cases),
@@ -174,6 +188,12 @@ def probe(pipeline) -> dict:
         ],
         "misses_total": len(misses),
         "misses": misses[:PROBE_EXAMPLES],
+        "directions": [
+            {"phenomenon": cell, "gold": gold, "predicted": guess, "count": count}
+            for (cell, gold, guess), count in sorted(
+                directions.items(), key=lambda item: (-item[1], item[0])
+            )
+        ],
     }
 
 
@@ -223,6 +243,47 @@ def deferral(baseline_rows: dict, herbert_rows: Optional[dict]) -> dict:
                 "escalated_share": point.escalated_share,
             }
             for point in combined
+        ],
+    }
+
+
+def length_segments(data, baseline_rows: dict) -> dict:
+    """The corpus score, cut by how long the review is.
+
+    This is the page's own headline put at risk. The claim rests on 80 short sentences we
+    wrote; PolEmo's own reviews vary in length by an order of magnitude, so the corpus can
+    corroborate the claim or contradict it. Only word counts and aggregates leave this
+    function — no review text is written anywhere.
+    """
+    lengths = [len(text.split()) for text in data.test.texts]
+    scores = segments.segment_scores(lengths, baseline_rows["true"], baseline_rows["pred"])
+    ordered = sorted(lengths)
+    # How much of the corpus is written at the length the probe asks about. Without this the
+    # section would compare a model's score across lengths PolEmo happens to contain and call
+    # the answer settled, when the range under dispute may not be in the corpus at all.
+    probe_lengths = sorted(len(case.text.split()) for case in challenge_set.CASES)
+    probe_median = probe_lengths[len(probe_lengths) // 2]
+    return {
+        "edges": list(config.LENGTH_BUCKET_EDGES),
+        "min_segment_n": config.MIN_SEGMENT_N,
+        "unit": "words",
+        "median_length": ordered[len(ordered) // 2] if ordered else 0,
+        "shortest": ordered[0] if ordered else 0,
+        "probe_median_length": probe_median,
+        "rows_at_probe_scale": sum(1 for length in lengths if length <= probe_median),
+        "trend": segments.trend(scores),
+        "segments": [
+            {
+                "name": item.name,
+                "lower": item.lower,
+                "upper": item.upper,
+                "n": item.n,
+                "accuracy": item.accuracy,
+                "macro_f1": item.macro_f1,
+                "classes_present": item.classes_present,
+                "thin": item.thin,
+            }
+            for item in scores
         ],
     }
 
@@ -329,7 +390,11 @@ def main() -> None:
     herbert_rows = _load_predictions(config.HERBERT_PREDICTIONS_PATH)
     data = load_polemo()
 
-    _write(config.SIGNIFICANCE_PATH, significance(baseline_rows, herbert_rows))
+    _write(
+        config.SIGNIFICANCE_PATH,
+        significance(baseline_rows, herbert_rows, data.train.labels),
+    )
+    _write(config.SEGMENTS_PATH, length_segments(data, baseline_rows))
     _write(config.CHALLENGE_PATH, probe(pipeline))
     _write(config.DEFERRAL_PATH, deferral(baseline_rows, herbert_rows))
     _write(

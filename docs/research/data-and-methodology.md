@@ -95,6 +95,31 @@ Result: **48 of 80**, including 13 of 20 on the control cell. The corpus score d
 over to sentence-length input, which is the more useful finding about this model than the
 score itself.
 
+## Putting the headline at risk
+
+The claim that the corpus score does not carry over to short reviews rests on sentences we
+wrote, so the corpus is asked the same question independently: the test predictions are cut by
+review length, into word-count buckets, with macro-F1 inside a bucket averaged over **only the
+classes that occur in it** (a bucket with no neutral reviews would otherwise take a hard zero
+for that class and report its own composition as the model's failure).
+
+The answer is that PolEmo cannot settle it, and the page says so. The median test review is 119
+words and just 3 of 684 are as short as the probe's sentences; across the lengths the corpus
+does cover — buckets of at least 50 reviews — length moves macro-F1 by 0.011, which is inside
+the interval around the score itself. The 25–49-word bucket is the reason the floor is 50 and
+not 30: thirty reviews there produce 90% accuracy and 0.62 macro-F1 at the same time, because
+one class contributed a handful of rows.
+
+So the probe tests a regime the corpus barely contains — which is why it had to be written
+rather than sampled — and the defensible claim is narrower than "short text breaks it".
+
+## Reference floors
+
+A macro-F1 quoted alone has no scale. Two floors are computed on the same test rows from the
+training prior: **always the majority class** (0.221 macro-F1 at 0.496 accuracy) and **random,
+matching the prior** (0.317 at 0.367). The first is the argument for the headline metric stated
+as a measurement — a model that has learned nothing is right about half the time.
+
 ## Calibration and deferral
 
 The model's confidence is **not** a probability: expected calibration error 0.209, with bins

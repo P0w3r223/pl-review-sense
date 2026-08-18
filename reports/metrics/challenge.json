@@ -84,5 +84,163 @@
       "gold": "neutral",
       "predicted": "negative"
     }
+  ],
+  "directions": [
+    {
+      "phenomenon": "no-diacritics",
+      "gold": "negative",
+      "predicted": "positive",
+      "count": 12
+    },
+    {
+      "phenomenon": "typos",
+      "gold": "negative",
+      "predicted": "positive",
+      "count": 11
+    },
+    {
+      "phenomenon": "sarcasm",
+      "gold": "negative",
+      "predicted": "positive",
+      "count": 8
+    },
+    {
+      "phenomenon": "no-diacritics",
+      "gold": "positive",
+      "predicted": "negative",
+      "count": 7
+    },
+    {
+      "phenomenon": "typos",
+      "gold": "neutral",
+      "predicted": "negative",
+      "count": 6
+    },
+    {
+      "phenomenon": "typos",
+      "gold": "positive",
+      "predicted": "negative",
+      "count": 6
+    },
+    {
+      "phenomenon": "no-diacritics",
+      "gold": "neutral",
+      "predicted": "positive",
+      "count": 5
+    },
+    {
+      "phenomenon": "typos",
+      "gold": "neutral",
+      "predicted": "positive",
+      "count": 5
+    },
+    {
+      "phenomenon": "contrast",
+      "gold": "negative",
+      "predicted": "positive",
+      "count": 4
+    },
+    {
+      "phenomenon": "negation",
+      "gold": "positive",
+      "predicted": "negative",
+      "count": 4
+    },
+    {
+      "phenomenon": "no-diacritics",
+      "gold": "neutral",
+      "predicted": "negative",
+      "count": 4
+    },
+    {
+      "phenomenon": "typos",
+      "gold": "negative",
+      "predicted": "neutral",
+      "count": 4
+    },
+    {
+      "phenomenon": "plain",
+      "gold": "neutral",
+      "predicted": "positive",
+      "count": 3
+    },
+    {
+      "phenomenon": "contrast",
+      "gold": "neutral",
+      "predicted": "negative",
+      "count": 2
+    },
+    {
+      "phenomenon": "negation",
+      "gold": "neutral",
+      "predicted": "negative",
+      "count": 2
+    },
+    {
+      "phenomenon": "no-diacritics",
+      "gold": "positive",
+      "predicted": "neutral",
+      "count": 2
+    },
+    {
+      "phenomenon": "plain",
+      "gold": "neutral",
+      "predicted": "negative",
+      "count": 2
+    },
+    {
+      "phenomenon": "contrast",
+      "gold": "negative",
+      "predicted": "neutral",
+      "count": 1
+    },
+    {
+      "phenomenon": "contrast",
+      "gold": "neutral",
+      "predicted": "positive",
+      "count": 1
+    },
+    {
+      "phenomenon": "contrast",
+      "gold": "positive",
+      "predicted": "neutral",
+      "count": 1
+    },
+    {
+      "phenomenon": "negation",
+      "gold": "neutral",
+      "predicted": "positive",
+      "count": 1
+    },
+    {
+      "phenomenon": "no-diacritics",
+      "gold": "negative",
+      "predicted": "neutral",
+      "count": 1
+    },
+    {
+      "phenomenon": "plain",
+      "gold": "negative",
+      "predicted": "neutral",
+      "count": 1
+    },
+    {
+      "phenomenon": "plain",
+      "gold": "negative",
+      "predicted": "positive",
+      "count": 1
+    },
+    {
+      "phenomenon": "sarcasm",
+      "gold": "negative",
+      "predicted": "neutral",
+      "count": 1
+    },
+    {
+      "phenomenon": "typos",
+      "gold": "positive",
+      "predicted": "neutral",
+      "count": 1
+    }
   ]
 }
