@@ -577,7 +577,25 @@ def test_confusion_cells_are_shaded_and_read_out_as_a_share_of_their_own_row():
 
     assert "75% of row" in markup and "25% of row" in markup  # row 0 holds four reviews
     assert "0% of row" in markup and "100% of row" in markup  # row 1 holds two
-    assert 'fill-opacity="0.750"' in markup, "the shading is the same share as the text"
+    # The shading is proportional to the share the cell prints, scaled by the readability cap:
+    # a 75% cell is three quarters as strong as a 100% one, not three quarters opaque.
+    assert f'fill-opacity="{0.75 * charts._CELL_MAX_OPACITY:.3f}"' in markup
+    assert f'fill-opacity="{1.0 * charts._CELL_MAX_OPACITY:.3f}"' in markup
+
+
+def test_no_cell_is_shaded_past_the_point_its_label_stays_readable():
+    """The cap is what lets one label colour clear 4.5:1 on every cell, in both schemes.
+
+    Measured against the stylesheet's palettes: uncapped, a cell just past the old switch point
+    put its own count at 2.5:1 in the light scheme.
+    """
+    markup = charts.confusion_chart([[10, 0], [0, 10]], ["a", "b"], "confusion")
+
+    opacities = [float(v) for v in re.findall(r'fill-opacity="([0-9.]+)"', markup)]
+    assert opacities, "the cells are shaded at all"
+    assert max(opacities) <= charts._CELL_MAX_OPACITY
+    assert charts._CELL_MAX_OPACITY <= 0.55, "beyond this the dark scheme drops under 4.5:1"
+    assert "on-fill" not in markup, "one label colour, so there is no switch to get wrong"
 
 
 def test_confusion_shares_would_differ_if_the_matrix_were_read_by_column():
