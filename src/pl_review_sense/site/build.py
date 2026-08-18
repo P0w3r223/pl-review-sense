@@ -47,6 +47,18 @@ WITHIN_DELTA = 0.02
 # How far apart the shortest and longest length segments have to be before the page calls the
 # difference a direction rather than noise. Same order as the interval around the score itself.
 LENGTH_TREND_DELTA = 0.02
+# How much of the gap between the two models a cascade has to close before the page quotes that
+# operating point. Naming the rule rather than the rate is what keeps it from being a cherry-pick.
+CASCADE_GAIN_TARGET = 0.80
+
+
+def _p_text(value: float) -> str:
+    """A p-value a reader can act on.
+
+    ``%.4f`` renders 3.1e-06 as "0.0000", which reads as exactly zero — a claim no test makes.
+    Below the smallest value four decimals can show, the honest rendering is the bound.
+    """
+    return "< 0.0001" if value < 0.0001 else f"= {value:.4f}"
 
 
 class IncompleteFigure(RuntimeError):
@@ -92,7 +104,7 @@ def _headline(baseline_metrics: dict, probe: Optional[dict], significance: Optio
                 "detail": (
                     f"HerBERT is right on {test['only_herbert_correct']} reviews the baseline "
                     f"misses and wrong on {test['only_baseline_correct']} it gets — a difference "
-                    f"this test set cannot separate from chance (p = {test['p_value']:.2f})."
+                    f"this test set cannot separate from chance (p {_p_text(test['p_value'])})."
                 ),
             }
         # Which way the significant difference runs is read from the numbers, not assumed. This
@@ -105,8 +117,8 @@ def _headline(baseline_metrics: dict, probe: Optional[dict], significance: Optio
                 "detail": (
                     f"The baseline is right on {test['only_baseline_correct']} reviews HerBERT "
                     f"misses and wrong on {test['only_herbert_correct']} it gets; across "
-                    f"{test['discordant']} disagreements that gap is real (p = "
-                    f"{test['p_value']:.4f}), not a rounding artefact of one test split."
+                    f"{test['discordant']} disagreements that gap is real (p "
+                    f"{_p_text(test['p_value'])}), not a rounding artefact of one test split."
                 ),
             }
         return {
@@ -114,7 +126,7 @@ def _headline(baseline_metrics: dict, probe: Optional[dict], significance: Optio
             "detail": (
                 f"It is right on {test['only_herbert_correct']} reviews the baseline misses and "
                 f"wrong on {test['only_baseline_correct']} it gets; on {test['discordant']} "
-                f"disagreements that is a real difference (p = {test['p_value']:.4f}). What it "
+                f"disagreements that is a real difference (p {_p_text(test['p_value'])}). What it "
                 "costs is further down the page."
             ),
         }
@@ -138,14 +150,98 @@ def _headline(baseline_metrics: dict, probe: Optional[dict], significance: Optio
     }
 
 
+def _cascade_highlight(
+    deferral: Optional[dict], significance: Optional[dict]
+) -> Optional[dict]:
+    """The cheapest cascade operating point that recovers most of what the transformer adds.
+
+    Quoting a rate would be cherry-picking; the rule is stated instead — the smallest share of
+    traffic sent to the GPU that closes at least ``CASCADE_GAIN_TARGET`` of the gap between the
+    two models. If no rate reaches it, nothing is highlighted rather than the best of a bad set.
+    """
+    if not deferral or not deferral.get("cascade") or not significance:
+        return None
+    baseline = (significance.get("baseline") or {}).get("macro_f1")
+    herbert = (significance.get("herbert") or {}).get("macro_f1")
+    if baseline is None or herbert is None or herbert <= baseline:
+        return None
+
+    gap = herbert - baseline
+    for point in deferral["cascade"]:
+        if not point["deferral_rate"]:
+            continue
+        recovered = (point["macro_f1"] - baseline) / gap
+        if recovered >= CASCADE_GAIN_TARGET:
+            return {**point, "recovered": recovered}
+    return None
+
+
 def _kpis(
     baseline_metrics: dict,
     significance: Optional[dict],
     probe: Optional[dict],
     deferral: Optional[dict],
     cost: Optional[dict],
+    herbert_metrics: Optional[dict] = None,
 ) -> List[Kpi]:
     interval = (significance or {}).get("baseline")
+    herbert = (significance or {}).get("herbert")
+    test = (significance or {}).get("mcnemar")
+
+    # Once the transformer has run, it is the finding, and the four numbers at the top of the
+    # page have to be the four the reader now needs: what it scores, whether the difference is
+    # real, what a cascade buys, and what the whole thing cost.
+    if herbert and test:
+        highlight = _cascade_highlight(deferral, significance)
+        test_rows = sum(row["support"] for row in baseline_metrics["per_class"])
+        return [
+            Kpi(
+                label="Macro-F1, HerBERT",
+                value=f"{herbert['macro_f1']:.3f}",
+                note=(
+                    f"{herbert['confidence']:.0%} interval {herbert['low']:.3f}–"
+                    f"{herbert['high']:.3f}, against {baseline_metrics['macro_f1']:.3f} for the "
+                    "baseline"
+                ),
+            ),
+            Kpi(
+                label="Reviews it settles either way",
+                value=f"{test['only_herbert_correct']} / {test['only_baseline_correct']}",
+                note=(
+                    f"it is right where the baseline is wrong / wrong where the baseline is "
+                    f"right, over {test['discordant']} disagreements — p {_p_text(test['p_value'])}"
+                ),
+            ),
+            Kpi(
+                label=(
+                    f"Cascade at {highlight['deferral_rate']:.0%} on the GPU"
+                    if highlight
+                    else "Cascade"
+                ),
+                value=f"{highlight['macro_f1']:.3f}" if highlight else "—",
+                note=(
+                    f"{highlight['recovered']:.0%} of what the transformer adds, from "
+                    f"{highlight['deferred']} of {test_rows} reviews"
+                    if highlight
+                    else "no rate recovers most of the gap"
+                ),
+            ),
+            Kpi(
+                label="What the transformer cost",
+                value=(
+                    f"{herbert_metrics['train_seconds'] / 60:.0f} min"
+                    if herbert_metrics and herbert_metrics.get("train_seconds")
+                    else "—"
+                ),
+                note=(
+                    f"on a {herbert_metrics['device']}, against "
+                    f"{cost['train_seconds']:.0f} s on a CPU"
+                    if herbert_metrics and herbert_metrics.get("device") and cost
+                    else "not measured"
+                ),
+            ),
+        ]
+
     kpis = [
         Kpi(
             label="Macro-F1, baseline",
@@ -231,6 +327,22 @@ def _calibration_direction(deferral: Optional[dict]) -> Optional[str]:
     return "close"
 
 
+def _cost_ratio(cost: Optional[dict], herbert_metrics: Optional[dict]) -> Optional[float]:
+    """How many times longer the transformer took to train than the bag of words.
+
+    The point of the whole page is accuracy *and* what it costs, and until a GPU run existed
+    the second half was a description. It is a ratio of wall-clock on two different machines,
+    which is exactly what someone deciding between them is comparing — the page names both.
+    """
+    if not cost or not herbert_metrics:
+        return None
+    theirs = herbert_metrics.get("train_seconds")
+    ours = cost.get("train_seconds")
+    if not theirs or not ours:
+        return None
+    return theirs / ours
+
+
 def _length_reading(length: Optional[dict], probe: Optional[dict]) -> Optional[str]:
     """Whether the corpus backs the page's own headline, in one word the template branches on.
 
@@ -302,6 +414,17 @@ def _settings() -> Dict[str, str]:
             f"seed        {config.RANDOM_STATE}\n"
             "fitted inside one Pipeline, so the vectorizer never sees the test split"
         ),
+        "herbert": (
+            f"model       {config.HERBERT_MODEL}\n"
+            f"epochs      {config.HERBERT_EPOCHS}  lr={config.HERBERT_LR}  "
+            f"weight_decay={config.HERBERT_WEIGHT_DECAY}\n"
+            f"batch       {config.HERBERT_BATCH_SIZE} x {config.HERBERT_GRAD_ACCUM} accumulated "
+            f"= {config.HERBERT_BATCH_SIZE * config.HERBERT_GRAD_ACCUM} per optimizer step\n"
+            f"max_len     {config.HERBERT_MAX_LEN}\n"
+            f"seed        {config.RANDOM_STATE}\n"
+            "the split batch is a memory accommodation, not a different hyperparameter: what\n"
+            "reaches the optimizer is the same 16 examples a larger card would pass in one go"
+        ),
         "uncertainty": (
             f"bootstrap   {config.BOOTSTRAP_RESAMPLES} resamples of the test rows, "
             f"{config.CONFIDENCE_LEVEL:.0%} percentile interval\n"
@@ -327,7 +450,8 @@ def _settings() -> Dict[str, str]:
             "python -m pl_review_sense.analysis         # intervals, curve, probe, deferral\n"
             "python -m pl_review_sense.site             # rebuilds this page into docs/\n"
             "\n"
-            "notebooks/herbert_colab.ipynb              # the GPU run this page is waiting for"
+            "python -m pl_review_sense.herbert          # the GPU run behind the comparison\n"
+            "notebooks/herbert_colab.ipynb              # the same run on a free Colab card"
         ),
     }
 
@@ -453,7 +577,16 @@ def gather(metrics_dir: Optional[Path] = None) -> dict:
         "manifest": manifest,
         "generated": manifest["generated_at"],
         "headline": _headline(baseline_metrics, probe, significance),
-        "kpis": _kpis(baseline_metrics, significance, probe, deferral, cost),
+        "kpis": _kpis(
+            baseline_metrics, significance, probe, deferral, cost, herbert_metrics
+        ),
+        "cascade_highlight": _cascade_highlight(deferral, significance),
+        "cascade_gain_target": CASCADE_GAIN_TARGET,
+        "mcnemar_p_text": (
+            _p_text((significance or {}).get("mcnemar", {}).get("p_value", 1.0))
+            if (significance or {}).get("mcnemar")
+            else None
+        ),
         "baseline": baseline_metrics,
         "labels": labels,
         "interval": (significance or {}).get("baseline"),
@@ -475,6 +608,7 @@ def gather(metrics_dir: Optional[Path] = None) -> dict:
         "within_delta": WITHIN_DELTA,
         "terms": terms,
         "cost": cost,
+        "cost_ratio": _cost_ratio(cost, herbert_metrics),
         "smoke_subset": config.SMOKE_SUBSET,
         "settings": _settings(),
         "charts": {name: Markup(markup) for name, markup in rendered.items()},

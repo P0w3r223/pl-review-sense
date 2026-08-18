@@ -42,9 +42,11 @@ missing is one a later change will reasonably decide to "improve" away.
   that class. Document the drop.
 - **No leakage**: fit the TF-IDF vectorizer and any encoder on **train only** (inside a Pipeline),
   evaluate on the untouched test split.
-- **HerBERT trains on GPU (Colab).** The local `--smoke` run proves the code path works; its
-  numbers go to a separate file, because a smoke run reported as the model's result is a
-  comparison against a model that was never trained.
+- **HerBERT trains on a GPU.** The headline run was local (GTX 1050, 4 GB, 50 min, batch split
+  4×4 to fit — effective batch unchanged); `notebooks/herbert_colab.ipynb` does the same on
+  Colab. The `--smoke` run proves the code path works and its numbers go to a separate file,
+  because a smoke run reported as the model's result is a comparison against a model that was
+  never trained.
 - **I/O lives at the edges.** The modules marked `(pure)` above stay free of network and disk, so
   they are unit-tested without either; `*_train`, `analysis`, `herbert`, `api` and `site/build`
   are where the boundary is crossed.
