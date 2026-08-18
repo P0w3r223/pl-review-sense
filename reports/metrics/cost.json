@@ -1,7 +1,7 @@
 {
-  "train_seconds": 2.95,
+  "train_seconds": 3.49,
   "train_rows": 5264,
-  "predict_rows_per_second": 6548.3,
+  "predict_rows_per_second": 3888.3,
   "model_bytes": 3236052,
   "machine": "Intel64 Family 6 Model 158 Stepping 10, GenuineIntel",
   "device": "CPU",

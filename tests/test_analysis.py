@@ -109,7 +109,7 @@ def test_a_well_formed_predictions_file_is_read_back_whole(tmp_path):
 
 
 def test_significance_reports_the_interval_and_nothing_it_cannot_compare(tmp_path):
-    payload = analysis.significance(_rows(TRUE, PRED, CONFIDENCE), None)
+    payload = analysis.significance(_rows(TRUE, PRED, CONFIDENCE), None, TRUE)
 
     interval = payload["baseline"]
     assert interval["low"] <= interval["macro_f1"] <= interval["high"]
@@ -121,7 +121,7 @@ def test_significance_pairs_the_two_models_row_by_row():
     baseline_rows = _rows(TRUE, PRED, CONFIDENCE)
     herbert_rows = _rows(TRUE, TRUE, CONFIDENCE)  # right about everything
 
-    payload = analysis.significance(baseline_rows, herbert_rows)
+    payload = analysis.significance(baseline_rows, herbert_rows, TRUE)
 
     expected = stats.mcnemar(TRUE, PRED, TRUE)
     assert payload["mcnemar"]["only_herbert_correct"] == expected.only_b_correct
@@ -136,7 +136,7 @@ def test_significance_refuses_two_files_describing_different_test_rows():
     herbert_rows = _rows(shifted, shifted, CONFIDENCE)
 
     with pytest.raises(ValueError, match="different test rows"):
-        analysis.significance(baseline_rows, herbert_rows)
+        analysis.significance(baseline_rows, herbert_rows, TRUE)
 
 
 # --- deferral -----------------------------------------------------------------------------
@@ -337,7 +337,13 @@ def _produce_metrics(tmp_path: Path, monkeypatch) -> Path:
     baseline.save(pipeline, config.BASELINE_MODEL_PATH)
 
     rows = analysis._load_predictions(config.BASELINE_PREDICTIONS_PATH)
-    analysis._write(tmp_path / config.SIGNIFICANCE_PATH.name, analysis.significance(rows, None))
+    analysis._write(
+        tmp_path / config.SIGNIFICANCE_PATH.name,
+        analysis.significance(rows, None, data.train.labels),
+    )
+    analysis._write(
+        tmp_path / config.SEGMENTS_PATH.name, analysis.length_segments(data, rows)
+    )
     analysis._write(tmp_path / config.CHALLENGE_PATH.name, analysis.probe(pipeline))
     analysis._write(tmp_path / config.DEFERRAL_PATH.name, analysis.deferral(rows, None))
     analysis._write(tmp_path / config.LEARNING_CURVE_PATH.name, analysis.learning_curve(data))
@@ -382,6 +388,8 @@ def test_the_analysis_writes_no_review_text_beyond_our_own_probe(tmp_path, monke
     # review is a paragraph; the longest legitimate string here is a 40-character commit sha.
     for name in (
         config.SIGNIFICANCE_PATH.name,
+        # The length cut reads every test review to measure it; only word counts come back out.
+        config.SEGMENTS_PATH.name,
         config.DEFERRAL_PATH.name,
         config.LEARNING_CURVE_PATH.name,
         config.COST_PATH.name,

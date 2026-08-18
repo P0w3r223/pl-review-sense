@@ -23,6 +23,7 @@ HERBERT_PREDICTIONS_PATH = PREDICTIONS_DIR / "herbert_test.json"
 # is missing on its own rather than blocking every other panel.
 MANIFEST_PATH = METRICS_DIR / "manifest.json"
 SIGNIFICANCE_PATH = METRICS_DIR / "significance.json"
+SEGMENTS_PATH = METRICS_DIR / "segments.json"
 LEARNING_CURVE_PATH = METRICS_DIR / "learning_curve.json"
 CHALLENGE_PATH = METRICS_DIR / "challenge.json"
 DEFERRAL_PATH = METRICS_DIR / "deferral.json"
@@ -96,6 +97,16 @@ CALIBRATION_TOLERANCE = 0.02
 # Shares of the test set handed onward, lowest confidence first. 0.0 is kept deliberately:
 # it is the no-deferral reference every other row is read against.
 DEFERRAL_RATES = (0.0, 0.05, 0.10, 0.20, 0.30)
+
+# --- Length segments ---------------------------------------------------------
+# Word counts. The page claims the corpus score does not carry over to short reviews; these
+# buckets ask the corpus itself, where the sentences are nobody's choice but PolEmo's.
+LENGTH_BUCKET_EDGES = (25, 50, 100, 200)
+# Below this many test rows a segment is drawn muted and read as a direction, not a score.
+# Fifty rather than thirty: a three-class macro-F1 over thirty reviews moves with which class
+# the rows happened to be. The 25–49-word bucket is the demonstration — 90% accuracy and 0.62
+# macro-F1 in the same thirty rows, because one class contributed a handful of them.
+MIN_SEGMENT_N = 50
 
 # --- Challenge set -----------------------------------------------------------
 # Below this many cases a phenomenon is reported as a count, never as a percentage: eight

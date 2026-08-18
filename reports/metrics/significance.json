@@ -6,6 +6,18 @@
     "resamples": 2000,
     "confidence": 0.95
   },
+  "floors": [
+    {
+      "name": "always the majority class",
+      "macro_f1": 0.2209188660801564,
+      "accuracy": 0.4956140350877193
+    },
+    {
+      "name": "random, matching the training prior",
+      "macro_f1": 0.3174885042193165,
+      "accuracy": 0.3669590643274854
+    }
+  ],
   "herbert": null,
   "mcnemar": null
 }

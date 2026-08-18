@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-18T09:13:59+00:00",
-  "git_sha": "4bcb3cb",
+  "generated_at": "2026-08-18T10:38:55+00:00",
+  "git_sha": "c25b398",
   "dataset": {
     "name": "clarin-pl/polemo2-official",
     "config": "all_text",

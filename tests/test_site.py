@@ -53,6 +53,10 @@ SIGNIFICANCE = {
         "resamples": 2000,
         "confidence": 0.95,
     },
+    "floors": [
+        {"name": "always the majority class", "macro_f1": 0.221, "accuracy": 0.496},
+        {"name": "random, matching the training prior", "macro_f1": 0.317, "accuracy": 0.367},
+    ],
     "herbert": None,
     "mcnemar": None,
 }
@@ -76,6 +80,31 @@ PROBE = {
             "gold": "neutral",
             "predicted": "positive",
         }
+    ],
+    "directions": [
+        {"phenomenon": "sarcasm", "gold": "negative", "predicted": "positive", "count": 8},
+        {"phenomenon": "plain", "gold": "neutral", "predicted": "positive", "count": 3},
+    ],
+}
+
+# The corpus cut by review length. Shaped like the real one: PolEmo holds almost nothing as
+# short as the probe, which is the case the page has to handle rather than the exception.
+SEGMENTS = {
+    "edges": [25, 50, 100, 200],
+    "min_segment_n": 50,
+    "unit": "words",
+    "median_length": 119,
+    "shortest": 5,
+    "probe_median_length": 9,
+    "rows_at_probe_scale": 3,
+    "trend": -0.0109,
+    "segments": [
+        {"name": "< 25", "lower": 0, "upper": 25, "n": 6, "accuracy": 0.667,
+         "macro_f1": 0.667, "classes_present": 3, "thin": True},
+        {"name": "50–99", "lower": 50, "upper": 100, "n": 213, "accuracy": 0.967,
+         "macro_f1": 0.964, "classes_present": 3, "thin": False},
+        {"name": "200+", "lower": 200, "upper": None, "n": 83, "accuracy": 0.952,
+         "macro_f1": 0.953, "classes_present": 3, "thin": False},
     ],
 }
 
@@ -144,6 +173,7 @@ def _metrics_dir(tmp_path: Path, **overrides) -> Path:
         config.BASELINE_METRICS_PATH.name: BASELINE,
         config.SIGNIFICANCE_PATH.name: SIGNIFICANCE,
         config.CHALLENGE_PATH.name: PROBE,
+        config.SEGMENTS_PATH.name: SEGMENTS,
         config.DEFERRAL_PATH.name: DEFERRAL,
         config.LEARNING_CURVE_PATH.name: CURVE,
         config.INTERPRETABILITY_PATH.name: TERMS,

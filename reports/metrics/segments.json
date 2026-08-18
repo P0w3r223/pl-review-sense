@@ -1,0 +1,67 @@
+{
+  "edges": [
+    25,
+    50,
+    100,
+    200
+  ],
+  "min_segment_n": 50,
+  "unit": "words",
+  "median_length": 119,
+  "shortest": 5,
+  "probe_median_length": 9,
+  "rows_at_probe_scale": 3,
+  "trend": -0.0109185309986225,
+  "segments": [
+    {
+      "name": "< 25",
+      "lower": 0,
+      "upper": 25,
+      "n": 6,
+      "accuracy": 0.6666666666666666,
+      "macro_f1": 0.6666666666666666,
+      "classes_present": 3,
+      "thin": true
+    },
+    {
+      "name": "25–49",
+      "lower": 25,
+      "upper": 50,
+      "n": 30,
+      "accuracy": 0.9,
+      "macro_f1": 0.6206349206349207,
+      "classes_present": 3,
+      "thin": true
+    },
+    {
+      "name": "50–99",
+      "lower": 50,
+      "upper": 100,
+      "n": 213,
+      "accuracy": 0.9671361502347418,
+      "macro_f1": 0.963926049795615,
+      "classes_present": 3,
+      "thin": false
+    },
+    {
+      "name": "100–199",
+      "lower": 100,
+      "upper": 200,
+      "n": 352,
+      "accuracy": 0.9289772727272727,
+      "macro_f1": 0.9294117647058823,
+      "classes_present": 3,
+      "thin": false
+    },
+    {
+      "name": "200+",
+      "lower": 200,
+      "upper": null,
+      "n": 83,
+      "accuracy": 0.9518072289156626,
+      "macro_f1": 0.9530075187969925,
+      "classes_present": 3,
+      "thin": false
+    }
+  ]
+}

@@ -47,7 +47,10 @@ methodology (built locally from committed metrics; the data/models stay out of g
 | TF-IDF + logistic regression | 0.940 | **0.944** | 0.926–0.961 |
 | HerBERT (fine-tuned) | *pending — run `notebooks/herbert_colab.ipynb` on a GPU* | | |
 
-Per-class baseline F1: negative 0.95, neutral 0.97, positive 0.92.
+Per-class baseline F1: negative 0.95, neutral 0.97, positive 0.92. For scale, the floors on the
+same test set: **always the majority class** scores 0.221 macro-F1 at 0.496 accuracy — half the
+reviews right, from a model that has learned nothing, which is the argument for the headline
+metric in one number.
 
 **And the finding the corpus score hides.** The same model answers **48 of 80** one-sentence
 Polish reviews written for this project — 13 of 20 in a control cell of unambiguous sentiment,
@@ -55,6 +58,13 @@ Polish reviews written for this project — 13 of 20 in a control cell of unambi
 its name suggests. The published page leads with that, because it reframes the project's
 question: a transformer is worth its compute where the text stops looking like the training
 corpus, and the cheapest way to find out is to look.
+
+**And the limit of that finding**, which the page states rather than hides: PolEmo cannot
+corroborate it. Its median test review is 119 words and only **3 of 684** are as short as the
+probe's sentences, so the length the claim is about is one the corpus barely contains. Across
+the lengths it does cover, review length moves macro-F1 by 0.011 — nothing. The defensible
+claim is therefore narrower than "short text breaks it", and what separates a PolEmo review
+from a constructed sentence — length, register, or both — this project cannot take apart.
 
 Two more results worth the click: **1 200 labelled reviews** (23% of the corpus) already land
 within 0.02 macro-F1 of what all 5 264 produce, and setting aside the least confident **10%**
@@ -67,8 +77,9 @@ probability.
 ```
 src/pl_review_sense/
   config.py  data.py  baseline.py  baseline_train.py  evaluate.py  herbert.py
-  stats.py       # bootstrap intervals, McNemar, calibration
+  stats.py       # bootstrap intervals, McNemar, calibration, reference floors
   curves.py      # learning curve, stratified subsampling
+  segments.py    # the score cut by review length — the headline put at risk
   challenge.py   # the probe: variants and scoring   challenge_set.py  # the 80 sentences
   cascade.py     # risk–coverage and the two-model cascade
   interpret.py   # heaviest coefficients per class
