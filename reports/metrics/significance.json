@@ -1,0 +1,11 @@
+{
+  "baseline": {
+    "macro_f1": 0.9439412539882738,
+    "low": 0.9261291390671661,
+    "high": 0.9607404703055787,
+    "resamples": 2000,
+    "confidence": 0.95
+  },
+  "herbert": null,
+  "mcnemar": null
+}
