@@ -247,7 +247,7 @@ footer {
   <li class="kpi">
     <div class="kpi-value">3 s</div>
     <div class="kpi-label">To train, on a CPU</div>
-    <div class="kpi-note">3.2 MB model  6 548 reviews/s</div>
+    <div class="kpi-note">3.2 MB model  3 888 reviews/s</div>
   </li>
 </ul>
 
@@ -297,6 +297,16 @@ footer {
   0.926 and 0.961. Any comparison
   narrower than 0.035 is a comparison this test
   set cannot make.
+</p>
+<p class="note">
+  What that is worth depends on what it is read against, so the floors are on the page rather
+  than left to the reader's intuition:
+<strong>always the majority class</strong> scores
+  0.221 macro-F1 at
+  0.496 accuracy, <strong>random, matching the training prior</strong> scores
+  0.317 macro-F1 at
+  0.367 accuracy.  The first of those is the whole argument for the headline metric: it is a model that has
+  learned nothing, and accuracy still flatters it.
 </p>
 <figure>
   <div class="chart-wrap"><svg class="chart" viewBox="0 0 420 230" width="420" height="230" role="img" aria-label="Confusion matrix, TF-IDF baseline" xmlns="http://www.w3.org/2000/svg"><title>Confusion matrix, TF-IDF baseline</title><text class="axis" x="96" y="16">predicted</text><text class="axis" x="4" y="38">true</text><text class="axis" x="148.0" y="38" text-anchor="middle">negative</text><text class="axis" x="252.0" y="38" text-anchor="middle">neutral</text><text class="axis" x="356.0" y="38" text-anchor="middle">positive</text><text class="bar-label" x="86" y="79.0" text-anchor="end">negative</text><rect class="cell" x="96" y="46" width="100" height="54" rx="3" fill-opacity="0.953"></rect><text class="cell-text on-fill" x="146.0" y="73.0" text-anchor="middle">323</text><text class="cell-share on-fill" x="146.0" y="89.0" text-anchor="middle">95% of row</text><rect class="cell" x="200" y="46" width="100" height="54" rx="3" fill-opacity="0.000"></rect><text class="cell-text" x="250.0" y="73.0" text-anchor="middle">0</text><text class="cell-share" x="250.0" y="89.0" text-anchor="middle">0% of row</text><rect class="cell" x="304" y="46" width="100" height="54" rx="3" fill-opacity="0.047"></rect><text class="cell-text" x="354.0" y="73.0" text-anchor="middle">16</text><text class="cell-share" x="354.0" y="89.0" text-anchor="middle">5% of row</text><text class="bar-label" x="86" y="137.0" text-anchor="end">neutral</text><rect class="cell" x="96" y="104" width="100" height="54" rx="3" fill-opacity="0.025"></rect><text class="cell-text" x="146.0" y="131.0" text-anchor="middle">3</text><text class="cell-share" x="146.0" y="147.0" text-anchor="middle">3% of row</text><rect class="cell" x="200" y="104" width="100" height="54" rx="3" fill-opacity="0.949"></rect><text class="cell-text on-fill" x="250.0" y="131.0" text-anchor="middle">112</text><text class="cell-share on-fill" x="250.0" y="147.0" text-anchor="middle">95% of row</text><rect class="cell" x="304" y="104" width="100" height="54" rx="3" fill-opacity="0.025"></rect><text class="cell-text" x="354.0" y="131.0" text-anchor="middle">3</text><text class="cell-share" x="354.0" y="147.0" text-anchor="middle">3% of row</text><text class="bar-label" x="86" y="195.0" text-anchor="end">positive</text><rect class="cell" x="96" y="162" width="100" height="54" rx="3" fill-opacity="0.079"></rect><text class="cell-text" x="146.0" y="189.0" text-anchor="middle">18</text><text class="cell-share" x="146.0" y="205.0" text-anchor="middle">8% of row</text><rect class="cell" x="200" y="162" width="100" height="54" rx="3" fill-opacity="0.004"></rect><text class="cell-text" x="250.0" y="189.0" text-anchor="middle">1</text><text class="cell-share" x="250.0" y="205.0" text-anchor="middle">0% of row</text><rect class="cell" x="304" y="162" width="100" height="54" rx="3" fill-opacity="0.916"></rect><text class="cell-text on-fill" x="354.0" y="189.0" text-anchor="middle">208</text><text class="cell-share on-fill" x="354.0" y="205.0" text-anchor="middle">92% of row</text></svg></div>
@@ -351,11 +361,11 @@ footer {
 </p>
 <p class="note">
   What the cheap side of that trade costs, measured rather than asserted: the full pipeline
-  fits in <strong>3.0 s</strong> on
+  fits in <strong>3.5 s</strong> on
   Intel64 Family 6 Model 158 Stepping 10, GenuineIntel (CPU),
 the saved model is
   3.2 MB, and it classifies
-  6548 reviews a second. HerBERT's side of the comparison is a GPU and minutes per epoch, and it stays a
+  3888 reviews a second. HerBERT's side of the comparison is a GPU and minutes per epoch, and it stays a
   description rather than a number until that run happens.
 </p>
 
@@ -472,6 +482,108 @@ the saved model is
 <p class="note">
   6 of 96 misses, in the order they were
   scored rather than picked for effect.
+</p>
+<h3>Where the misses go</h3>
+<p>
+  A count of correct answers cannot tell a model that misreads irony apart from one that
+  answers <em>negative</em> to everything — both score the same. The direction of the errors
+  can, which is why it is a column rather than a sentence.
+</p>
+<table>
+  <thead>
+    <tr><th>cell</th><th>should be</th><th>answered</th><th class="num">times</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>no-diacritics</th>
+      <td>negative</td>
+      <td>positive</td>
+      <td class="num">12</td>
+    </tr>
+    <tr>
+      <th>typos</th>
+      <td>negative</td>
+      <td>positive</td>
+      <td class="num">11</td>
+    </tr>
+    <tr>
+      <th>sarcasm</th>
+      <td>negative</td>
+      <td>positive</td>
+      <td class="num">8</td>
+    </tr>
+    <tr>
+      <th>no-diacritics</th>
+      <td>positive</td>
+      <td>negative</td>
+      <td class="num">7</td>
+    </tr>
+    <tr>
+      <th>typos</th>
+      <td>neutral</td>
+      <td>negative</td>
+      <td class="num">6</td>
+    </tr>
+    <tr>
+      <th>typos</th>
+      <td>positive</td>
+      <td>negative</td>
+      <td class="num">6</td>
+    </tr>
+    <tr>
+      <th>no-diacritics</th>
+      <td>neutral</td>
+      <td>positive</td>
+      <td class="num">5</td>
+    </tr>
+    <tr>
+      <th>typos</th>
+      <td>neutral</td>
+      <td>positive</td>
+      <td class="num">5</td>
+    </tr>
+  </tbody>
+</table>
+<p class="note">
+  The eight most frequent of 26 distinct
+  should-be/answered pairs, over all 96 misses including the derived
+  cells.
+</p>
+
+<h2>Is that about length, or about our sentences?</h2>
+<p>
+  The section above is the page's own claim, and it rests on sentences we wrote. The obvious
+  objection is that the probe measures our writing rather than its length. PolEmo is where to
+  put that question: nobody here chose its reviews, and the same predictions that produced the
+  headline score can be cut by how long each one is. Whether the corpus is in a position to
+  answer is the first thing the cut has to establish.
+</p>
+<figure>
+  <div class="chart-wrap"><svg class="chart" viewBox="0 0 720 154" width="720" height="154" role="img" aria-label="Macro-F1 by review length (macro-F1)" xmlns="http://www.w3.org/2000/svg"><title>Macro-F1 by review length (macro-F1)</title><text class="bar-label" x="142" y="25" text-anchor="end">&lt; 25 words</text><rect class="bar muted" x="150" y="15" width="332.0" height="17" rx="2"></rect><text class="bar-value" x="488.0" y="25">0.667 n=6</text><text class="bar-label" x="142" y="51" text-anchor="end">25–49 words</text><rect class="bar muted" x="150" y="41" width="309.1" height="17" rx="2"></rect><text class="bar-value" x="465.1" y="51">0.621 n=30</text><text class="bar-label" x="142" y="77" text-anchor="end">50–99 words</text><rect class="bar" x="150" y="67" width="480.0" height="17" rx="2"></rect><text class="bar-value" x="636.0" y="77">0.964 n=213</text><text class="bar-label" x="142" y="103" text-anchor="end">100–199 words</text><rect class="bar" x="150" y="93" width="462.8" height="17" rx="2"></rect><text class="bar-value" x="618.8" y="103">0.929 n=352</text><text class="bar-label" x="142" y="129" text-anchor="end">200+ words</text><rect class="bar" x="150" y="119" width="474.6" height="17" rx="2"></rect><text class="bar-value" x="630.6" y="129">0.953 n=83</text></svg></div>
+  <figcaption>
+    The same 684 test reviews, grouped by word count. Macro-F1 inside a
+    group averages only the classes that occur in it — a group holding no neutral reviews would
+    otherwise take a hard zero for that class and report its own composition as the model's
+    failure. Groups under 50 reviews are muted: a direction, not a score.
+    The median review in this split is 119 words, and the shortest is
+    5.
+  </figcaption>
+</figure>
+<p>
+  <strong>The corpus cannot settle it.</strong> PolEmo is made of written reviews — the median
+  one in this split is 119 words — and only
+  3 of its 684 test reviews are as short
+  as the probe's sentences (9 words at the median). The length
+  the claim is about is a length this corpus barely contains, which is why the sentences had to
+  be written rather than sampled.
+  Across the lengths it does cover, counting only groups of at least
+  50 reviews, the score moves by
+  -0.011 macro-F1 between the shortest and the longest of them —
+  inside the interval around the score itself, so not a direction at all.
+  So the honest reading of the section above is narrower than "short text breaks it": on
+  sentence-length Polish reviews of the kind this corpus does not contain, the model is not the
+  0.94 model. What separates the two — length, register, or the distance between a review and a
+  constructed sentence — this page cannot take apart, and does not claim to.
 </p>
 
 <h2>What the model keys on</h2>
@@ -667,8 +779,8 @@ notebooks/herbert_colab.ipynb              # the GPU run this page is waiting fo
 <footer>
   <p>
     Built from metrics generated
-    <time datetime="2026-08-18T09:13:59+00:00">2026-08-18</time> at commit
-    <code>4bcb3cb</code>, scikit-learn 1.9.0,
+    <time datetime="2026-08-18T10:38:55+00:00">2026-08-18</time> at commit
+    <code>c25b398</code>, scikit-learn 1.9.0,
     Python 3.12.10 ·
     <a href="https://github.com/P0w3r223/pl-review-sense">source on GitHub</a> ·
     <a href="https://github.com/P0w3r223/pl-review-sense/blob/main/docs/model-card.md">model card</a> ·

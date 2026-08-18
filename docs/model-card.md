@@ -26,7 +26,10 @@ measured, and a demonstration of how far a linear model gets on that task.
 
 - **Short text.** It answers 48 of 80 one-sentence reviews written for the published page,
   including 13 of 20 in a control cell of unambiguous sentiment. The corpus score does not
-  transfer to sentence-length input.
+  transfer to that kind of input. Note the bound on this: PolEmo holds only 3 test reviews as
+  short as those sentences, and across the lengths it does cover, length changes the score by
+  0.011 — so *why* the transfer fails (length, register, or the gap between a review and a
+  constructed sentence) is not established here.
 - **Irony.** 11 of 20 on a cell built from ironic praise and surface-matched genuine praise —
   the level a coin reaches on a two-label cell.
 - **Anything outside the four domains.** The heaviest coefficients for the neutral class are
@@ -43,9 +46,12 @@ On the untouched 684-review test split:
 | macro-F1 | 0.944, 95% bootstrap interval 0.926–0.961 |
 | accuracy | 0.940 |
 | per-class F1 | negative 0.946 · neutral 0.970 · positive 0.916 |
+| floor — always the majority class | 0.221 macro-F1 at 0.496 accuracy |
+| floor — random, matching the training prior | 0.317 macro-F1 at 0.367 accuracy |
 
 Macro-F1 is the headline metric because the classes are imbalanced. Any comparison narrower
-than the interval width is one this test set cannot make.
+than the interval width is one this test set cannot make. The floors are why: a model that has
+learned nothing is right about half the time on accuracy.
 
 On the project's own 80-sentence probe: `plain` 13/20, `negation` 13/20, `sarcasm` 11/20,
 `contrast` 11/20. Stripping diacritics and introducing a typo change the totals little,
@@ -62,8 +68,10 @@ threshold at that point is 0.519.
 
 ## Cost
 
-Trains in about 3 seconds on a laptop CPU, 3.2 MB on disk, roughly 6 500 reviews a second at
-inference. This is the figure a GPU fine-tune has to justify itself against.
+A few seconds to train on a laptop CPU, 3.2 MB on disk, thousands of reviews a second at
+inference — the published page carries the measured figures with the machine they were taken
+on, because timings move with whatever else that machine is doing. This is the bill a GPU
+fine-tune has to justify itself against.
 
 ## Data and licence
 
