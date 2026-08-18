@@ -70,6 +70,18 @@
   set cannot make.
 </p>
 {% endif %}
+{% if floors %}
+<p class="note">
+  What that is worth depends on what it is read against, so the floors are on the page rather
+  than left to the reader's intuition:
+  {% for floor in floors %}<strong>{{ floor.name }}</strong> scores
+  {{ '%.3f' | format(floor.macro_f1) }} macro-F1 at
+  {{ '%.3f' | format(floor.accuracy) }} accuracy{% if not loop.last %}, {% else %}.{% endif %}
+  {% endfor %}
+  The first of those is the whole argument for the headline metric: it is a model that has
+  learned nothing, and accuracy still flatters it.
+</p>
+{% endif %}
 <figure>
   <div class="chart-wrap">{{ charts.confusion }}</div>
   <figcaption>
@@ -240,9 +252,104 @@
   scored rather than picked for effect.
 </p>
 {% endif %}
+{% if probe.directions %}
+<h3>Where the misses go</h3>
+<p>
+  A count of correct answers cannot tell a model that misreads irony apart from one that
+  answers <em>negative</em> to everything — both score the same. The direction of the errors
+  can, which is why it is a column rather than a sentence.
+</p>
+<table>
+  <thead>
+    <tr><th>cell</th><th>should be</th><th>answered</th><th class="num">times</th></tr>
+  </thead>
+  <tbody>
+    {% for move in probe.directions[:8] %}
+    <tr>
+      <th>{{ move.phenomenon }}</th>
+      <td>{{ move.gold }}</td>
+      <td>{{ move.predicted }}</td>
+      <td class="num">{{ move.count }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p class="note">
+  The eight most frequent of {{ probe.directions | length }} distinct
+  should-be/answered pairs, over all {{ probe.misses_total }} misses including the derived
+  cells.
+</p>
+{% endif %}
 {% else %}
 <div class="card pending">
   <strong>Not scored yet.</strong> Run <code>python -m pl_review_sense.analysis</code>.
+</div>
+{% endif %}
+
+<h2>Is that about length, or about our sentences?</h2>
+<p>
+  The section above is the page's own claim, and it rests on sentences we wrote. The obvious
+  objection is that the probe measures our writing rather than its length. PolEmo is where to
+  put that question: nobody here chose its reviews, and the same predictions that produced the
+  headline score can be cut by how long each one is. Whether the corpus is in a position to
+  answer is the first thing the cut has to establish.
+</p>
+{% if length and length.segments %}
+<figure>
+  <div class="chart-wrap">{{ charts.length }}</div>
+  <figcaption>
+    The same {{ manifest.splits.test }} test reviews, grouped by word count. Macro-F1 inside a
+    group averages only the classes that occur in it — a group holding no neutral reviews would
+    otherwise take a hard zero for that class and report its own composition as the model's
+    failure. Groups under {{ length.min_segment_n }} reviews are muted: a direction, not a score.
+    The median review in this split is {{ length.median_length }} words, and the shortest is
+    {{ length.shortest }}.
+  </figcaption>
+</figure>
+<p>
+  {% if length_reading == 'unanswerable' %}
+  <strong>The corpus cannot settle it.</strong> PolEmo is made of written reviews — the median
+  one in this split is {{ length.median_length }} words — and only
+  {{ length.rows_at_probe_scale }} of its {{ manifest.splits.test }} test reviews are as short
+  as the probe's sentences ({{ length.probe_median_length }} words at the median). The length
+  the claim is about is a length this corpus barely contains, which is why the sentences had to
+  be written rather than sampled.
+  {% if length.trend is not none %}
+  Across the lengths it does cover, counting only groups of at least
+  {{ length.min_segment_n }} reviews, the score moves by
+  {{ '%.3f' | format(length.trend) }} macro-F1 between the shortest and the longest of them —
+  inside the interval around the score itself, so not a direction at all.
+  {% endif %}
+  So the honest reading of the section above is narrower than "short text breaks it": on
+  sentence-length Polish reviews of the kind this corpus does not contain, the model is not the
+  0.94 model. What separates the two — length, register, or the distance between a review and a
+  constructed sentence — this page cannot take apart, and does not claim to.
+  {% elif length_reading == 'corroborates' %}
+  The corpus says the same thing as the probe: macro-F1 is
+  {{ '%.3f' | format(length.trend) }} higher on the longest reviews than on the shortest, and
+  the model that scores {{ '%.3f' | format(baseline.macro_f1) }} overall is not scoring that on
+  short text. Two independent pieces of evidence — one written for this page, one not.
+  {% elif length_reading == 'contradicts' %}
+  The corpus disagrees with the probe: the score is {{ '%.3f' | format(0 - length.trend) }}
+  <em>higher</em> on the shortest reviews than on the longest. Whatever the probe is measuring,
+  it is not length — register, or the distance between a written review and a constructed
+  sentence, are the candidates. The headline above is about the probe, and only about it.
+  {% elif length_reading == 'climbs' %}
+  The score climbs {{ '%.3f' | format(length.trend) }} macro-F1 from the shortest reviews to
+  the longest, so length does cost this model something — even though the probe above did not
+  fall far enough for the page to lead with it.
+  {% else %}
+  Length turns out to explain little: the shortest and longest groups are within
+  {{ '%.3f' | format(within_delta) }} macro-F1 of each other. So the probe's result is not a
+  length effect, and the page cannot claim it is. What separates a PolEmo review from one of
+  our sentences is register and construction, not word count — which is a narrower finding
+  than "short text breaks it", and the one the evidence supports.
+  {% endif %}
+</p>
+{% else %}
+<div class="card pending">
+  <strong>Not computed yet.</strong> Run <code>python -m pl_review_sense.analysis</code>; the
+  cut needs the corpus, which is downloaded on demand rather than committed.
 </div>
 {% endif %}
 

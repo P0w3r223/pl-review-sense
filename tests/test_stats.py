@@ -165,3 +165,53 @@ def test_a_wider_confidence_level_gives_a_wider_interval():
 def test_calibration_rejects_mismatched_input():
     with pytest.raises(ValueError):
         stats.calibrate([0.5, 0.6], [True])
+
+
+# --- reference floors ---------------------------------------------------------------------
+
+
+def test_the_majority_floor_predicts_the_class_the_training_set_is_made_of():
+    train = [0] * 80 + [1] * 10 + [2] * 10
+    test = [0] * 5 + [1] * 3 + [2] * 2
+
+    majority, _ = stats.reference_floors(train, test)
+
+    assert majority.accuracy == pytest.approx(0.5), "the share of class 0 in the test set"
+    assert majority.macro_f1 < majority.accuracy
+
+
+def test_the_majority_floor_is_why_accuracy_is_not_the_headline_metric():
+    """Half the test set right, and a macro-F1 that says so — the argument in one number."""
+    train = [0] * 90 + [1] * 5 + [2] * 5
+    test = [0] * 50 + [1] * 25 + [2] * 25
+
+    majority, _ = stats.reference_floors(train, test)
+
+    assert majority.accuracy == pytest.approx(0.5)
+    assert majority.macro_f1 < 0.3
+
+
+def test_both_floors_are_scored_and_named():
+    floors = stats.reference_floors([0, 1, 2] * 10, [0, 1, 2] * 5)
+
+    assert [floor.name for floor in floors] == [
+        "always the majority class",
+        "random, matching the training prior",
+    ]
+    assert all(0.0 <= floor.macro_f1 <= 1.0 for floor in floors)
+
+
+def test_the_random_floor_is_reproducible():
+    train, test = [0] * 60 + [1] * 20 + [2] * 20, [0, 1, 2] * 30
+
+    first = stats.reference_floors(train, test)
+    second = stats.reference_floors(train, test)
+
+    assert first == second, "same seed, same floor — the page is rebuilt from committed numbers"
+
+
+def test_floors_refuse_an_empty_test_set_or_an_empty_prior():
+    with pytest.raises(ValueError):
+        stats.reference_floors([0, 1, 2], [])
+    with pytest.raises(ValueError):
+        stats.reference_floors([], [0, 1, 2])

@@ -44,6 +44,9 @@ HEADLINE_DEFERRAL = 0.10
 # How close to the full-corpus score counts as "the rest is not worth labelling", in macro-F1
 # points. Two points is roughly the width of the interval around the score itself.
 WITHIN_DELTA = 0.02
+# How far apart the shortest and longest length segments have to be before the page calls the
+# difference a direction rather than noise. Same order as the interval around the score itself.
+LENGTH_TREND_DELTA = 0.02
 
 
 class IncompleteFigure(RuntimeError):
@@ -228,6 +231,32 @@ def _calibration_direction(deferral: Optional[dict]) -> Optional[str]:
     return "close"
 
 
+def _length_reading(length: Optional[dict], probe: Optional[dict]) -> Optional[str]:
+    """Whether the corpus backs the page's own headline, in one word the template branches on.
+
+    The claim under test is that the score belongs to long reviews. ``corroborates`` when the
+    score climbs with length, ``contradicts`` when it does not, and ``flat`` when the two ends
+    are within the noise. Derived rather than written: a section whose prose asserts the
+    outcome it is supposed to be testing would be worth nothing.
+    """
+    if not length or not length["segments"]:
+        return None
+    # The prior question, and usually the answer: a corpus that contains almost nothing as
+    # short as the probe cannot settle a claim about short text in either direction. Reporting
+    # a trend across the lengths it does hold would answer a different question quietly.
+    if length.get("rows_at_probe_scale", 0) < length["min_segment_n"]:
+        return "unanswerable"
+    if length["trend"] is None:
+        return None
+    correct, total = _probe_totals(probe)
+    probe_fell = bool(total) and correct / total < PROBE_CARRIES_OVER
+    if length["trend"] > LENGTH_TREND_DELTA:
+        return "corroborates" if probe_fell else "climbs"
+    if length["trend"] < -LENGTH_TREND_DELTA:
+        return "contradicts"
+    return "flat"
+
+
 def _within(curve: Optional[dict], delta: float) -> Optional[dict]:
     """The smallest training size already within ``delta`` macro-F1 of the full corpus.
 
@@ -323,6 +352,7 @@ def gather(metrics_dir: Optional[Path] = None) -> dict:
     probe = _read(metrics_dir, config.CHALLENGE_PATH.name)
     deferral = _read(metrics_dir, config.DEFERRAL_PATH.name)
     curve = _read(metrics_dir, config.LEARNING_CURVE_PATH.name)
+    length = _read(metrics_dir, config.SEGMENTS_PATH.name)
     terms = _read(metrics_dir, config.INTERPRETABILITY_PATH.name)
     cost = _read(metrics_dir, config.COST_PATH.name)
     herbert_metrics = _read(metrics_dir, config.HERBERT_METRICS_PATH.name)
@@ -352,6 +382,22 @@ def gather(metrics_dir: Optional[Path] = None) -> dict:
                 f"labelled reviews, log scale · band = spread over "
                 f"{len(curve['seeds'])} stratified draws per size"
             ),
+        )
+
+    if length and length["segments"]:
+        rendered["length"] = charts.bar_chart(
+            [
+                charts.Bar(
+                    label=f"{segment['name']} words",
+                    value=segment["macro_f1"],
+                    value_text=f"{segment['macro_f1']:.3f}",
+                    note=f"n={segment['n']}",
+                    muted=segment["thin"],
+                )
+                for segment in length["segments"]
+            ],
+            "Macro-F1 by review length",
+            unit="macro-F1",
         )
 
     if probe:
@@ -411,6 +457,9 @@ def gather(metrics_dir: Optional[Path] = None) -> dict:
         "baseline": baseline_metrics,
         "labels": labels,
         "interval": (significance or {}).get("baseline"),
+        "floors": (significance or {}).get("floors"),
+        "length": length,
+        "length_reading": _length_reading(length, probe),
         "mcnemar": (significance or {}).get("mcnemar"),
         "herbert": (significance or {}).get("herbert"),
         "herbert_metrics": herbert_metrics,
