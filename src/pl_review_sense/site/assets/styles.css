@@ -1,0 +1,205 @@
+/* The palette, the type scale and the component vocabulary are shared with it-job-radar:
+   the two pages are read as one body of work, and a reader moving between them should not
+   have to re-learn what a card or a muted bar means.
+
+   Both colour schemes are first-class. The palette is a set of variables and dark mode swaps
+   the variables rather than restating the design — which is the main reason every figure here
+   is SVG rather than an embedded PNG. A rendered chart would carry a white background into a
+   dark page and quietly become the one element nobody styled. */
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --surface: #f6f8fa;
+  --border: #e3e7ee;
+  --text: #1c2430;
+  --muted: #5b6472;
+  --accent: #2563eb;
+  --accent-soft: #93c5fd;
+  --positive: #059669;
+  --warn: #b45309;
+  --radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1319;
+    --surface: #161c25;
+    --border: #263041;
+    --text: #e6eaf2;
+    --muted: #98a3b6;
+    --accent: #6ea8fe;
+    --accent-soft: #2c4a7c;
+    --positive: #34d399;
+    --warn: #fbbf24;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+a { color: var(--accent); }
+a:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+}
+
+h1 {
+  font-size: clamp(1.75rem, 1.2rem + 2.2vw, 2.75rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.75rem;
+}
+
+h2 {
+  font-size: 1.3rem;
+  letter-spacing: -0.01em;
+  margin: 2.75rem 0 0.35rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+h2:first-of-type { border-top: none; padding-top: 0; }
+h3 { font-size: 1rem; margin: 1.5rem 0 0.25rem; }
+p { margin: 0.5rem 0; }
+.lead { font-size: 1.1rem; color: var(--muted); max-width: 46rem; }
+.note { color: var(--muted); font-size: 0.9rem; }
+.hint { display: block; color: var(--muted); font-size: 0.85rem; font-weight: 400; }
+
+/* KPI row: the four numbers that frame everything below. */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+  margin: 1.75rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+}
+
+.kpi-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+.kpi-label { font-size: 0.85rem; font-weight: 600; }
+.kpi-note { font-size: 0.78rem; color: var(--muted); line-height: 1.35; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  margin: 1.25rem 0;
+}
+
+.card.caution { border-left: 3px solid var(--warn); }
+/* A panel whose evidence has not been produced yet. Dashed rather than coloured: nothing is
+   wrong here, the measurement simply has not been run — and a reader who sees the section
+   knows what is missing, where a section that disappears until the data arrives looks like a
+   page that never had one. */
+.card.pending { border-style: dashed; }
+
+figure { margin: 1rem 0 0; }
+figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 0.35rem; }
+
+/* Charts scroll inside their own box; the page itself never scrolls sideways. */
+.chart-wrap { overflow-x: auto; }
+.chart { max-width: 100%; height: auto; display: block; }
+.chart text { font-size: 11px; fill: var(--text); }
+.chart .bar-label { fill: var(--text); }
+.chart .bar-value, .chart .axis { fill: var(--muted); font-size: 10.5px; }
+.chart .bar { fill: var(--accent); }
+.chart .bar.muted { fill: var(--accent-soft); }
+.chart .axis-line { stroke: var(--border); stroke-width: 1; }
+
+/* Series: one line, its seed-to-seed spread as a band behind it. The band is the honest
+   half of the figure — without it a bumpy curve reads as structure. */
+.chart .series {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart .series-dot { fill: var(--accent); }
+.chart .band { fill: var(--accent); opacity: 0.16; }
+/* The line a perfectly calibrated model would sit on. Dashed and muted: it is a reference,
+   not a measurement, and must never read as a second series. */
+.chart .identity { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+
+/* Fractions (k correct of n): the track is the whole cell, the bar is what was right. The
+   ceiling has to be drawn, because "17" means nothing without the 20 behind it. */
+.chart .track { fill: var(--border); }
+.chart .fill { fill: var(--accent); }
+.chart .fill.muted { fill: var(--accent-soft); }
+
+/* Confusion matrix. Intensity is row-normalized — a class with 118 examples and one with 339
+   would otherwise differ in colour because of its size rather than its error rate. */
+.chart .cell { fill: var(--accent); }
+.chart .cell-text { fill: var(--text); font-size: 12px; }
+.chart .cell-text.on-fill { fill: var(--bg); }
+.chart .cell-share { fill: var(--muted); font-size: 10px; }
+.chart .cell-text.on-fill + .cell-share, .chart .cell-share.on-fill { fill: var(--bg); opacity: 0.8; }
+
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; color: var(--muted); font-size: 0.82rem; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.quote { font-style: italic; }
+
+details { margin: 0.75rem 0; }
+summary { cursor: pointer; font-size: 0.9rem; color: var(--accent); }
+pre {
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+code { font-size: 0.9em; }
+
+/* Three per-class term rankings side by side: they are read against each other, not in turn. */
+.columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 0;
+}
+
+footer {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+@media print {
+  body { max-width: none; }
+  details { display: none; }
+}

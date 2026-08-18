@@ -1,0 +1,22 @@
+{
+  "generated_at": "2026-08-18T09:13:59+00:00",
+  "git_sha": "4bcb3cb",
+  "dataset": {
+    "name": "clarin-pl/polemo2-official",
+    "config": "all_text",
+    "revision": "802e35d2b12bae84bb07911d841e8f046dc2fcef",
+    "dropped_class": "amb",
+    "license": "CC BY-NC-SA 4.0"
+  },
+  "splits": {
+    "train": 5264,
+    "validation": 668,
+    "test": 684
+  },
+  "seed": 42,
+  "herbert_available": false,
+  "versions": {
+    "python": "3.12.10",
+    "scikit_learn": "1.9.0"
+  }
+}
