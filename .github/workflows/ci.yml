@@ -5,6 +5,13 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+# Training stays out of CI by design: PolEmo is non-commercial and downloaded on demand, and
+# the transformer path needs a GPU. What CI can verify is that the page in `docs/` is exactly
+# what the committed metrics produce — which is the failure mode a hand-edited report has.
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -20,3 +27,25 @@ jobs:
           pip install -e . pytest httpx
       - name: Run tests
         run: pytest
+
+  drift:
+    name: Published page matches the committed metrics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+      - name: Rebuild the page from reports/metrics
+        run: python -m pl_review_sense.site --out build/site
+      - name: Fail if docs/index.html is stale or hand-edited
+        run: |
+          if ! diff -u docs/index.html build/site/index.html; then
+            echo "::error file=docs/index.html::The published page does not match the committed metrics. Run 'python -m pl_review_sense.site' and commit the result."
+            exit 1
+          fi

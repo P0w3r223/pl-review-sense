@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ headline.claim }} — pl-review-sense</title>
+<meta name="description" content="{{ headline.detail }}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ headline.claim }}">
+<meta property="og:description" content="{{ headline.detail }}">
+<meta property="og:url" content="https://p0w3r223.github.io/pl-review-sense/">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><text y=%2213%22 font-size=%2213%22>&#128172;</text></svg>">
+<style>
+{{ styles }}
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">Polish review sentiment · PolEmo 2.0 · {{ manifest.splits.test }} test reviews</p>
+  <h1>{{ headline.claim }}</h1>
+  <p class="lead">{{ headline.detail }}</p>
+</header>
+
+<ul class="kpis">
+  {% for kpi in kpis %}
+  <li class="kpi">
+    <div class="kpi-value">{{ kpi.value }}</div>
+    <div class="kpi-label">{{ kpi.label }}</div>
+    <div class="kpi-note">{{ kpi.note }}</div>
+  </li>
+  {% endfor %}
+</ul>
+
+<h2>What the corpus score is, and how tightly it is pinned</h2>
+<p>
+  Macro-F1 rather than accuracy, because the classes are imbalanced: answering
+  <em>negative</em> to everything would score respectably on accuracy and badly here. The
+  figure below it is the one that is usually left off — a score on
+  {{ manifest.splits.test }} reviews is a sample, and the interval says how much of the third
+  decimal is real.
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>class</th><th class="num">precision</th><th class="num">recall</th>
+      <th class="num">F1</th><th class="num">test reviews</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in baseline.per_class %}
+    <tr>
+      <th>{{ row.label }}</th>
+      <td class="num">{{ '%.3f' | format(row.precision) }}</td>
+      <td class="num">{{ '%.3f' | format(row.recall) }}</td>
+      <td class="num">{{ '%.3f' | format(row.f1) }}</td>
+      <td class="num">{{ row.support }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if interval %}
+<p class="note">
+  Macro-F1 <strong>{{ '%.3f' | format(interval.macro_f1) }}</strong>, and
+  {{ '%.0f%%' | format(interval.confidence * 100) }} of
+  {{ interval.resamples }} bootstrap resamples of the test rows fall between
+  {{ '%.3f' | format(interval.low) }} and {{ '%.3f' | format(interval.high) }}. Any comparison
+  narrower than {{ '%.3f' | format(interval.high - interval.low) }} is a comparison this test
+  set cannot make.
+</p>
+{% endif %}
+<figure>
+  <div class="chart-wrap">{{ charts.confusion }}</div>
+  <figcaption>
+    Rows are the true class, columns what the model answered. Shading is the share of each
+    row, so the three classes are comparable despite differing threefold in size. The
+    confusions are almost entirely between the two ends of the scale, not with the middle.
+  </figcaption>
+</figure>
+
+<h2>Is the transformer better?</h2>
+{% if mcnemar and herbert %}
+<table>
+  <thead>
+    <tr><th>model</th><th class="num">accuracy</th><th class="num">macro-F1</th><th class="num">interval</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>TF-IDF + logistic regression</th>
+      <td class="num">{{ '%.3f' | format(baseline.accuracy) }}</td>
+      <td class="num">{{ '%.3f' | format(baseline.macro_f1) }}</td>
+      <td class="num">{{ '%.3f' | format(interval.low) }}–{{ '%.3f' | format(interval.high) }}</td>
+    </tr>
+    <tr>
+      <th>HerBERT, fine-tuned</th>
+      <td class="num">{% if herbert_metrics %}{{ '%.3f' | format(herbert_metrics.accuracy) }}{% else %}—{% endif %}</td>
+      <td class="num">{{ '%.3f' | format(herbert.macro_f1) }}</td>
+      <td class="num">{{ '%.3f' | format(herbert.low) }}–{{ '%.3f' | format(herbert.high) }}</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  The intervals are not the comparison. Both models answer the same
+  {{ manifest.splits.test }} reviews, so the question is which reviews they disagree on:
+  HerBERT is right on <strong>{{ mcnemar.only_herbert_correct }}</strong> the baseline misses,
+  the baseline is right on <strong>{{ mcnemar.only_baseline_correct }}</strong> HerBERT misses,
+  and the remaining {{ manifest.splits.test - mcnemar.discordant }} they answer alike. An exact
+  McNemar test on those {{ mcnemar.discordant }} disagreements gives
+  <strong>p = {{ '%.4f' | format(mcnemar.p_value) }}</strong>.
+</p>
+{% else %}
+<div class="card pending">
+  <p>
+    <strong>Waiting for a GPU run.</strong> HerBERT fine-tunes on a free Colab GPU
+    (<code>notebooks/herbert_colab.ipynb</code>); this repository has no representative run yet,
+    so there is no second column and no comparison. The local CPU smoke run is not it — it
+    fine-tunes {{ smoke_subset }} reviews for one epoch to prove the training code executes,
+    and its numbers are written to a separate file that this page never reads.
+  </p>
+  <p>
+    When that run lands, the comparison here will not be two scores side by side. Both models
+    answer the same {{ manifest.splits.test }} reviews, so the evidence is which reviews they
+    disagree on: an exact McNemar test over the disagreements, which can separate models whose
+    intervals overlap and can refuse to separate models whose intervals do not.
+  </p>
+</div>
+{% endif %}
+
+<h2>How much of this score is data rather than model</h2>
+<p>
+  Before asking what a transformer would add, it is worth asking what the corpus adds. The
+  same pipeline is refit from scratch on stratified subsamples of the training split and
+  scored on the untouched test split every time.
+</p>
+{% if curve %}
+<figure>
+  <div class="chart-wrap">{{ charts.curve }}</div>
+  <figcaption>
+    Macro-F1 against the number of labelled reviews, on a log axis because the sizes double.
+    The band is the spread over {{ curve.seeds | length }} draws at each size — where it is
+    wide, the point is a draw of the dice rather than a property of the size. The y axis
+    starts above zero; the floor is printed on it.
+  </figcaption>
+</figure>
+{% if curve_within %}
+<p>
+  <strong>{{ curve_within.size }} labelled reviews</strong> —
+  {{ '%.0f%%' | format(curve_within.share_of_corpus * 100) }} of the corpus — already land
+  within {{ '%.3f' | format(curve_within.gap) }} macro-F1 of what all
+  {{ curve.points[-1].size }} produce. The remaining
+  {{ curve.points[-1].size - curve_within.size }} annotations buy the last
+  {{ '%.1f' | format(curve_within.gap * 100) }} points. Whether that is worth paying for is a
+  budget question, but it is the same question as "should we fine-tune a transformer", asked
+  where the answer is cheaper to test.
+</p>
+{% endif %}
+{% if cost %}
+<p class="note">
+  What the cheap side of that trade costs, measured rather than asserted: the full pipeline
+  fits in <strong>{{ '%.1f' | format(cost.train_seconds) }} s</strong> on
+  {{ cost.machine }} ({{ cost.device }}), the saved model is
+  {{ '%.1f' | format(cost.model_bytes / 1000000) }} MB, and it classifies
+  {{ '%.0f' | format(cost.predict_rows_per_second) }} reviews a second. HerBERT's side of the comparison is a GPU and minutes per epoch, and it stays a
+  description rather than a number until that run happens.
+</p>
+{% endif %}
+{% else %}
+<div class="card pending">
+  <strong>Not computed yet.</strong> Run <code>python -m pl_review_sense.analysis</code> to
+  produce the curve from the committed corpus.
+</div>
+{% endif %}
+
+<h2>Where a bag of words slips</h2>
+<p>
+  The corpus score says how the model does on reviews like the ones it was trained on. It says
+  nothing about the phenomena a lexical model is supposed to be bad at. This section used to
+  assert that negation and irony are its weak points and illustrate the claim with three
+  unscored sentences; it now measures it.
+</p>
+{% if probe %}
+<p>
+  {{ probe.base_cases }} sentences, written for this page in the four domains PolEmo draws
+  from, plus {{ probe.derived_cases }} derived by re-spelling the same sentences — diacritics
+  stripped, and one adjacent-character swap in the longest word. No PolEmo text appears here;
+  the corpus is non-commercial and is not redistributed by this repository.
+</p>
+<figure>
+  <div class="chart-wrap">{{ charts.probe }}</div>
+  <figcaption>
+    The track is the size of each cell, the bar what was answered correctly. Read
+    <code>plain</code> first: it is the control, unambiguous sentiment with no negation, irony
+    or pivot, and everything below it is only interesting relative to that. The two derived
+    cells re-score the same sentences, so they belong beside the base cells rather than added
+    to them.
+  </figcaption>
+</figure>
+<p>
+  The cells are built so that no single answer can win them. Every ironic sentence has a
+  genuine counterpart in the same enthusiastic register, down to minimal pairs — "bateria
+  wytrzymała całe trzy godziny" against "całe trzy dni" — because a probe made only of ironic
+  praise would be scored 20 of 20 by a model that answers <em>negative</em> to everything. The
+  negation cell carries cues in both directions for the same reason.
+</p>
+{% if probe.misses %}
+<table>
+  <thead>
+    <tr><th>sentence</th><th>cell</th><th>should be</th><th>answered</th></tr>
+  </thead>
+  <tbody>
+    {% for miss in probe.misses %}
+    <tr>
+      <td class="quote">{{ miss.text }}</td>
+      <td>{{ miss.phenomenon }}</td>
+      <td>{{ miss.gold }}</td>
+      <td>{{ miss.predicted }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p class="note">
+  {{ probe.misses | length }} of {{ probe.misses_total }} misses, in the order they were
+  scored rather than picked for effect.
+</p>
+{% endif %}
+{% else %}
+<div class="card pending">
+  <strong>Not scored yet.</strong> Run <code>python -m pl_review_sense.analysis</code>.
+</div>
+{% endif %}
+
+<h2>What the model keys on</h2>
+{% if terms %}
+<p>
+  A linear model has two advantages over a transformer, and only one of them is the compute
+  bill. These are the {{ terms.top_n }} heaviest coefficients per class — the model's own
+  reasons, not an explanation reconstructed after the fact. They are weights, not review text.
+</p>
+<div class="columns">
+  {% for label in labels %}
+  <div>
+    <h3>{{ label }}</h3>
+    <div class="chart-wrap">{{ charts['terms_' ~ label] }}</div>
+  </div>
+  {% endfor %}
+</div>
+<p class="note">
+  Worth reading against the cells above. Where a class's heaviest terms are evaluative, the
+  model has learned sentiment; where they are topical — the vocabulary of the domains those
+  reviews happen to come from — it has learned to recognise the subject matter, and will carry
+  that habit onto any sentence about the same subject. A single token weighted for one class
+  also cannot be conditioned on what follows it, which is what the negation cell measures.
+</p>
+{% else %}
+<div class="card pending">
+  <strong>Not extracted yet.</strong> Run <code>python -m pl_review_sense.analysis</code>.
+</div>
+{% endif %}
+
+<h2>Knowing when not to answer</h2>
+{% if deferral %}
+<p>
+  A system that can run both models does not have to choose one. The cheap model answers what
+  it is sure about and hands the rest on, and the bill is then set by how much gets handed on.
+  That only works if the model's confidence means something, so it is measured before it is
+  used.
+</p>
+<figure>
+  <div class="chart-wrap">{{ charts.reliability }}</div>
+  <figcaption>
+    One point per populated confidence bin: what the model claimed, against how often it was
+    right. Expected calibration error
+    <strong>{{ '%.3f' | format(deferral.expected_calibration_error) }}</strong>.
+    {% if calibration_direction == 'under' %}
+    The points sit above the diagonal — the model is <em>under</em>-confident, right more often
+    than it says. That is not the harmless direction it sounds like: a rule written as "hand on
+    anything below 0.7" would escalate bands this model answers perfectly.
+    {% elif calibration_direction == 'over' %}
+    The points sit below the diagonal — the model is <em>over</em>-confident, and a threshold
+    read as a probability would keep reviews it gets wrong.
+    {% else %}
+    The points track the diagonal closely, so a threshold can be read as roughly the accuracy
+    it buys.
+    {% endif %}
+  </figcaption>
+</figure>
+<p>
+  Which is why the operating point comes from the table below rather than from the confidence
+  number itself. Reviews are handed on in order of the model's own confidence, least sure
+  first, and the threshold column is the lowest confidence still answered — the number that
+  would go into a configuration file.
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>handed on</th><th class="num">reviews</th><th class="num">kept</th>
+      <th class="num">threshold</th><th class="num">macro-F1 on what it keeps</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for point in deferral.risk_coverage %}
+    <tr>
+      <th>{{ '%.0f%%' | format(point.deferral_rate * 100) }}</th>
+      <td class="num">{{ point.deferred }}</td>
+      <td class="num">{{ point.kept }}</td>
+      <td class="num">{{ '%.3f' | format(point.threshold) }}</td>
+      <td class="num">{{ '%.3f' | format(point.macro_f1) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p class="note">
+  The first row is the reference: no deferral, the whole test set. That the score climbs as
+  reviews are set aside is the evidence that the confidence ranks anything at all — had it
+  stayed flat, no threshold built on it would work, whatever the calibration figure said.
+</p>
+{% if deferral.cascade %}
+<table>
+  <thead>
+    <tr>
+      <th>handed to HerBERT</th><th class="num">reviews</th>
+      <th class="num">macro-F1, whole test set</th><th class="num">share on the GPU</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for point in deferral.cascade %}
+    <tr>
+      <th>{{ '%.0f%%' | format(point.deferral_rate * 100) }}</th>
+      <td class="num">{{ point.deferred }}</td>
+      <td class="num">{{ '%.3f' | format(point.macro_f1) }}</td>
+      <td class="num">{{ '%.0f%%' | format(point.escalated_share * 100) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="card pending">
+  <strong>The cascade needs the second model.</strong> The table above says what the baseline
+  scores on the reviews it keeps — a statement about one model, publishable today. What the
+  combined system would score depends on how HerBERT answers the reviews handed to it, and
+  those predictions do not exist yet. Nothing here estimates them: a cascade figure computed
+  without the expensive model is a guess wearing three decimal places.
+</div>
+{% endif %}
+{% else %}
+<div class="card pending">
+  <strong>Not computed yet.</strong> Run <code>python -m pl_review_sense.analysis</code>.
+</div>
+{% endif %}
+
+<h2>Method, and what it cannot tell you</h2>
+<div class="card">
+  <p>
+    <strong>Data.</strong> PolEmo 2.0 (CLARIN-PL), the <code>{{ manifest.dataset.config }}</code>
+    configuration, pinned at revision <code>{{ manifest.dataset.revision[:12] }}</code> so the
+    loader script that runs is one that was audited. The <code>{{ manifest.dataset.dropped_class }}</code>
+    class is dropped rather than folded into <em>neutral</em>: ambiguous is not a point on the
+    negative–positive axis, and merging it would corrupt the class it was merged into. That
+    leaves {{ manifest.splits.train }} training, {{ manifest.splits.validation }} validation and
+    {{ manifest.splits.test }} test reviews.
+  </p>
+  <p>
+    <strong>No leakage, and no tuning against the test split.</strong> The vectorizer is fit
+    inside the pipeline, on the training fold only. Hyperparameters are fixed defaults in
+    <code>config.py</code>; the validation split is deliberately not tuned against, so the test
+    figures stay an estimate rather than a selection.
+  </p>
+  <p>
+    <strong>Limits.</strong> One corpus, of traditional written reviews from four domains —
+    this is not a general Polish sentiment API, and the probe above is the evidence for that
+    rather than a caveat about it. The probe itself is 80 sentences: enough to show that a gap
+    exists, not to quantify it. The compute figures are measured on one CPU and quoted with
+    the machine beside them. Nothing here says what HerBERT does, because HerBERT has not run.
+  </p>
+  <p>
+    <strong>What is committed.</strong> Numbers only — metrics, intervals, coefficients,
+    timings and per-row predictions as label integers. No review text is stored in this
+    repository; PolEmo is CC BY-NC-SA and is downloaded on demand.
+  </p>
+</div>
+
+<h2>The configuration behind every number</h2>
+<p class="note">
+  Printed from the constants the code actually uses, not described. A setting that is quoted
+  from <code>config.py</code> cannot drift away from the run that produced the figures above.
+</p>
+{% for name, block in settings.items() %}
+<details>
+  <summary>{{ name }}</summary>
+  <pre><code>{{ block }}</code></pre>
+</details>
+{% endfor %}
+
+<footer>
+  <p>
+    Built from metrics generated
+    <time datetime="{{ generated }}">{{ generated[:10] }}</time> at commit
+    <code>{{ manifest.git_sha }}</code>, scikit-learn {{ manifest.versions.scikit_learn }},
+    Python {{ manifest.versions.python }} ·
+    <a href="https://github.com/P0w3r223/pl-review-sense">source on GitHub</a> ·
+    <a href="https://github.com/P0w3r223/pl-review-sense/blob/main/docs/model-card.md">model card</a> ·
+    <a href="https://github.com/P0w3r223/pl-review-sense/blob/main/docs/research/data-and-methodology.md">methodology</a> ·
+    <a href="https://github.com/P0w3r223/pl-review-sense/tree/main/docs/adr">decisions</a>
+  </p>
+  <p>
+    Every figure on this page is rebuilt from <code>reports/metrics/</code> by
+    <code>python -m pl_review_sense.site</code>, and CI fails if the published page and those
+    files disagree. The page cannot be edited into saying something the numbers do not.
+  </p>
+  <p>
+    Data: <a href="https://clarin-pl.eu/dspace/handle/11321/710">PolEmo 2.0</a> © CLARIN-PL,
+    {{ manifest.dataset.license }}. Code MIT.
+  </p>
+</footer>
+
+</body>
+</html>

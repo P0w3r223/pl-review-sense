@@ -16,6 +16,9 @@ dependencies = [
     "matplotlib>=3.9,<4",
     "seaborn>=0.13,<0.14",
     "joblib>=1.4,<2",
+    "scipy>=1.11,<2",
+    # The published page is a Jinja template over the committed metrics, not a formatted string.
+    "jinja2>=3.1,<4",
     # PolEmo loads through a dataset script -> needs datasets < 3 (trust_remote_code support).
     "datasets>=2.19,<3",
     "fastapi>=0.115,<1",
@@ -43,6 +46,11 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# The template and the stylesheet are part of the package, not loose files beside it: the
+# build reads them through the installed package, including in CI's editable install.
+[tool.setuptools.package-data]
+"pl_review_sense.site" = ["templates/*.j2", "assets/*.css"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
