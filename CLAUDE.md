@@ -31,33 +31,40 @@ tests/              # pytest
 docs/               # published page, adr/, model-card.md, research/
 ```
 
-## Methodology rules (do not violate)
+## Methodology rules
+
+The project's own commitments, each with the reason it exists — a rule whose rationale is
+missing is one a later change will reasonably decide to "improve" away.
+
 - **Macro-F1 is the headline metric**, not accuracy — the classes are imbalanced.
 - **Three classes**: drop PolEmo's `ambiguous`; map `minus/zero/plus` -> negative/neutral/positive.
-  Document the drop; never silently merge it into another class.
+  Ambiguous is not a point on the negative–positive axis, so folding it into neutral corrupts
+  that class. Document the drop.
 - **No leakage**: fit the TF-IDF vectorizer and any encoder on **train only** (inside a Pipeline),
   evaluate on the untouched test split.
-- **HerBERT trains on GPU (Colab).** The local `--smoke` run only proves the code path works; its
-  numbers are non-representative and never presented as the model's result.
-- **Separate I/O from logic.** `data`/`baseline`/`evaluate`/`stats`/`curves`/`challenge`/
-  `cascade`/`interpret` stay pure and unit-tested; network and disk live in `*_train`,
-  `analysis`, `herbert`, `api`, and `site/build`.
-- **No score without its interval, no comparison without the paired test.** A macro-F1 printed
-  to three decimals invites a comparison 684 test rows cannot support; models are compared with
-  exact McNemar over their disagreements, never by which point estimate is larger.
-- **Every figure carries its n.** The site build raises `IncompleteFigure` rather than
-  publishing marks whose counts are not stated.
+- **HerBERT trains on GPU (Colab).** The local `--smoke` run proves the code path works; its
+  numbers go to a separate file, because a smoke run reported as the model's result is a
+  comparison against a model that was never trained.
+- **I/O lives at the edges.** The modules marked `(pure)` above stay free of network and disk, so
+  they are unit-tested without either; `*_train`, `analysis`, `herbert`, `api` and `site/build`
+  are where the boundary is crossed.
+- **Every score carries its interval; comparisons are paired.** Three decimals of macro-F1 invite
+  a comparison this test set cannot support, and two models answering the same rows are compared
+  with exact McNemar over their disagreements rather than by which point estimate is larger.
+- **Every figure carries its n** — the site build raises `IncompleteFigure` instead of publishing
+  marks whose counts are unstated.
 - **The page is a function of `reports/metrics/`.** No wall clock, no dataset, no model at build
-  time; CI diffs the rebuilt page against the committed one. Never hand-edit `docs/index.html`.
-- **A panel with no evidence says so.** Anything waiting on the GPU run renders as a panel
-  explaining what is missing — never as an estimate, a placeholder number, or a hidden section.
-- **The challenge set is ours and stays balanced.** No PolEmo text; every cell keeps both
-  directions of its phenomenon so no single answer can win it (tests enforce the 60% ceiling).
+  time. Change it through `site/templates/` and rebuild; CI diffs the rebuilt page against the
+  committed `docs/index.html`.
+- **A panel with no evidence says so** — anything waiting on the GPU run renders as a panel naming
+  what is missing and what would settle it, in place of an estimate.
+- **The challenge set is ours and stays balanced.** Sentences are written for this repo, never
+  PolEmo text; each cell keeps both directions of its phenomenon so no single answer can win it
+  (tests enforce a 60% ceiling per cell).
 
 ## Conventions
 - English for code, comments, README, commits. Conventional Commits.
 - No hardcoded values — configurable things live in `config.py`.
-- Separate I/O from logic; pure functions are unit-tested.
 - Interpreter: `.venv/Scripts/python.exe` (Python 3.12). Standard core install has **no torch**;
   the transformer extra is only for the HerBERT path.
 
