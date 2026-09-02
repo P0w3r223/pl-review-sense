@@ -41,6 +41,7 @@
   {{ manifest.splits.test }} reviews is a sample, and the interval says how much of the third
   decimal is real.
 </p>
+<div class="table-wrap">
 <table>
   <thead>
     <tr>
@@ -60,6 +61,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% if interval %}
 <p class="note">
   Macro-F1 <strong>{{ '%.3f' | format(interval.macro_f1) }}</strong>, and
@@ -93,6 +95,7 @@
 
 <h2>Is the transformer better?</h2>
 {% if mcnemar and herbert %}
+<div class="table-wrap">
 <table>
   <thead>
     <tr><th>model</th><th class="num">accuracy</th><th class="num">macro-F1</th><th class="num">interval</th></tr>
@@ -112,6 +115,7 @@
     </tr>
   </tbody>
 </table>
+</div>
 <p>
   The intervals are not the comparison. Both models answer the same
   {{ manifest.splits.test }} reviews, so the question is which reviews they disagree on:
@@ -221,6 +225,7 @@
     to them.
   </figcaption>
 </figure>
+<div class="table-wrap">
 <table>
   <thead>
     <tr><th>cell</th><th>what it holds</th><th class="num">correct</th></tr>
@@ -235,6 +240,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 <p>
   The cells are built so that no single answer can win them. Every ironic sentence has a
   genuine counterpart in the same enthusiastic register, down to minimal pairs — "bateria
@@ -243,6 +249,7 @@
   negation cell carries cues in both directions for the same reason.
 </p>
 {% if probe.misses %}
+<div class="table-wrap">
 <table>
   <thead>
     <tr><th>sentence</th><th>cell</th><th>should be</th><th>answered</th></tr>
@@ -258,6 +265,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 <p class="note">
   {{ probe.misses | length }} of {{ probe.misses_total }} misses, in the order they were
   scored rather than picked for effect.
@@ -270,6 +278,7 @@
   answers <em>negative</em> to everything — both score the same. The direction of the errors
   can, which is why it is a column rather than a sentence.
 </p>
+<div class="table-wrap">
 <table>
   <thead>
     <tr><th>cell</th><th>should be</th><th>answered</th><th class="num">times</th></tr>
@@ -285,6 +294,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 <p class="note">
   The eight most frequent of {{ probe.directions | length }} distinct
   should-be/answered pairs, over all {{ probe.misses_total }} misses including the derived
@@ -425,6 +435,7 @@
   first, and the threshold column is the lowest confidence still answered — the number that
   would go into a configuration file.
 </p>
+<div class="table-wrap">
 <table>
   <thead>
     <tr>
@@ -444,6 +455,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 <p class="note">
   The first row is the reference: no deferral, the whole test set. That the score climbs as
   reviews are set aside is the evidence that the confidence ranks anything at all — had it
@@ -457,6 +469,7 @@
   everything, the expensive one on the fraction the cheap one is least sure of, and the GPU
   bill is that fraction rather than all of it.
 </p>
+<div class="table-wrap">
 <table>
   <thead>
     <tr>
@@ -475,6 +488,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% if cascade_highlight %}
 <p>
   Read the {{ '%.0f%%' | format(cascade_highlight.deferral_rate * 100) }} row. Sending that

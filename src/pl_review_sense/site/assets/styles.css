@@ -164,6 +164,12 @@ figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 0.35rem; }
 .chart .cell-text { fill: var(--text); font-size: 12px; }
 .chart .cell-share { fill: var(--muted); font-size: 10px; }
 
+/* Tables scroll inside their own box, like the charts above. A table is never narrower than
+   its columns need, so `width: 100%` cannot rescue one whose contents will not wrap. Preventive:
+   measured at a 375px viewport all seven of these fit today — but they are generated from run
+   results, so their width is a property of the data. A longer model name or another metric
+   column is a change nothing here would otherwise notice. */
+.table-wrap { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
 th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border); }
 th { font-weight: 600; color: var(--muted); font-size: 0.82rem; }
