@@ -178,6 +178,12 @@ figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 0.35rem; }
 .chart .cell-text { fill: var(--text); font-size: 12px; }
 .chart .cell-share { fill: var(--muted); font-size: 10px; }
 
+/* Tables scroll inside their own box, like the charts above. A table is never narrower than
+   its columns need, so `width: 100%` cannot rescue one whose contents will not wrap. Preventive:
+   measured at a 375px viewport all seven of these fit today — but they are generated from run
+   results, so their width is a property of the data. A longer model name or another metric
+   column is a change nothing here would otherwise notice. */
+.table-wrap { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
 th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border); }
 th { font-weight: 600; color: var(--muted); font-size: 0.82rem; }
@@ -259,6 +265,7 @@ footer {
   684 reviews is a sample, and the interval says how much of the third
   decimal is real.
 </p>
+<div class="table-wrap">
 <table>
   <thead>
     <tr>
@@ -290,6 +297,7 @@ footer {
     </tr>
   </tbody>
 </table>
+</div>
 <p class="note">
   Macro-F1 <strong>0.944</strong>, and
   95% of
@@ -318,6 +326,7 @@ footer {
 </figure>
 
 <h2>Is the transformer better?</h2>
+<div class="table-wrap">
 <table>
   <thead>
     <tr><th>model</th><th class="num">accuracy</th><th class="num">macro-F1</th><th class="num">interval</th></tr>
@@ -337,6 +346,7 @@ footer {
     </tr>
   </tbody>
 </table>
+</div>
 <p>
   The intervals are not the comparison. Both models answer the same
   684 reviews, so the question is which reviews they disagree on:
@@ -411,6 +421,7 @@ the saved model is
     to them.
   </figcaption>
 </figure>
+<div class="table-wrap">
 <table>
   <thead>
     <tr><th>cell</th><th>what it holds</th><th class="num">correct</th></tr>
@@ -448,6 +459,7 @@ the saved model is
     </tr>
   </tbody>
 </table>
+</div>
 <p>
   The cells are built so that no single answer can win them. Every ironic sentence has a
   genuine counterpart in the same enthusiastic register, down to minimal pairs — "bateria
@@ -455,6 +467,7 @@ the saved model is
   praise would be scored 20 of 20 by a model that answers <em>negative</em> to everything. The
   negation cell carries cues in both directions for the same reason.
 </p>
+<div class="table-wrap">
 <table>
   <thead>
     <tr><th>sentence</th><th>cell</th><th>should be</th><th>answered</th></tr>
@@ -498,6 +511,7 @@ the saved model is
     </tr>
   </tbody>
 </table>
+</div>
 <p class="note">
   6 of 96 misses, in the order they were
   scored rather than picked for effect.
@@ -508,6 +522,7 @@ the saved model is
   answers <em>negative</em> to everything — both score the same. The direction of the errors
   can, which is why it is a column rather than a sentence.
 </p>
+<div class="table-wrap">
 <table>
   <thead>
     <tr><th>cell</th><th>should be</th><th>answered</th><th class="num">times</th></tr>
@@ -563,6 +578,7 @@ the saved model is
     </tr>
   </tbody>
 </table>
+</div>
 <p class="note">
   The eight most frequent of 26 distinct
   should-be/answered pairs, over all 96 misses including the derived
@@ -657,6 +673,7 @@ the saved model is
   first, and the threshold column is the lowest confidence still answered — the number that
   would go into a configuration file.
 </p>
+<div class="table-wrap">
 <table>
   <thead>
     <tr>
@@ -702,6 +719,7 @@ the saved model is
     </tr>
   </tbody>
 </table>
+</div>
 <p class="note">
   The first row is the reference: no deferral, the whole test set. That the score climbs as
   reviews are set aside is the evidence that the confidence ranks anything at all — had it
@@ -714,6 +732,7 @@ the saved model is
   everything, the expensive one on the fraction the cheap one is least sure of, and the GPU
   bill is that fraction rather than all of it.
 </p>
+<div class="table-wrap">
 <table>
   <thead>
     <tr>
@@ -754,6 +773,7 @@ the saved model is
     </tr>
   </tbody>
 </table>
+</div>
 <p>
   Read the 20% row. Sending that
   share of reviews to the GPU — the 137 the baseline is least sure
