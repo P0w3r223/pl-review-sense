@@ -28,7 +28,10 @@
   --text: #1c2430;
   --muted: #5b6472;
   --accent: #2563eb;
-  --accent-soft: #93c5fd;
+  /* Muted marks still have to be marks. At #93c5fd this sat at 1.8:1 against the page, under
+     the 3:1 a non-text graphic needs, so a greyed bar read as a smudge; #5b93e4 clears it at
+     3.12:1 while staying 1.66:1 from --accent, which is what keeps "muted" legible as muted. */
+  --accent-soft: #5b93e4;
   --positive: #059669;
   --warn: #b45309;
   --radius: 10px;
@@ -42,7 +45,7 @@
     --text: #e6eaf2;
     --muted: #98a3b6;
     --accent: #6ea8fe;
-    --accent-soft: #2c4a7c;
+    --accent-soft: #4167a6;  /* 3.30:1 on the dark page; #2c4a7c was 2.11:1 */
     --positive: #34d399;
     --warn: #fbbf24;
   }
@@ -165,8 +168,10 @@ figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 0.35rem; }
 .chart .identity { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
 
 /* Fractions (k correct of n): the track is the whole cell, the bar is what was right. The
-   ceiling has to be drawn, because "17" means nothing without the 20 behind it. */
-.chart .track { fill: var(--border); }
+   ceiling has to be drawn, because "17" means nothing without the 20 behind it — and a fill
+   of --border alone is 1.24:1 against the page, which draws it without making it visible. The
+   outline carries the extent; the fill stays quiet so the bar inside it keeps the emphasis. */
+.chart .track { fill: var(--border); stroke: var(--muted); stroke-width: 1; }
 .chart .fill { fill: var(--accent); }
 .chart .fill.muted { fill: var(--accent-soft); }
 
