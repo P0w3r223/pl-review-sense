@@ -692,3 +692,25 @@ def test_the_page_renders_when_the_model_file_was_not_kept(tmp_path):
     assert "not measured on this machine" in html
     assert "the saved model is" not in html, "no size sentence without a size"
     assert "6548" in html, "the timings it did measure are still reported"
+
+
+def test_every_table_scrolls_inside_its_own_box(tmp_path):
+    """A table is never narrower than its columns need, so `width: 100%` cannot rescue one
+    whose contents will not wrap — it takes the page sideways instead.
+
+    Preventive: measured at a 375px viewport all seven tables here fit today. They are generated
+    from run results, so their width is a property of the data — a longer model name or another
+    metric column would change it, and nothing else would notice. Three sibling projects had this
+    defect *measured* on them this week, all three with `overflow-x` already on their charts and
+    none of it on their tables.
+    """
+    html = build.render(_metrics_dir(tmp_path))
+
+    tables = html.count("<table")
+    assert tables, "the page publishes no tables — this check has stopped covering anything"
+    assert tables == html.count('<div class="table-wrap">'), (
+        "a table is published outside a scroll container"
+    )
+    assert re.search(r"\.table-wrap\s*\{[^}]*overflow-x:\s*auto", html), (
+        "the wrapper is inert without the rule that makes it scroll"
+    )
