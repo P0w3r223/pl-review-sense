@@ -5,7 +5,7 @@ Guidance for Claude Code (and any contributor) working in this repository.
 ## What this project is
 A Polish-language review sentiment classifier that contrasts a classic approach
 (TF-IDF + logistic regression) with fine-tuning a Polish transformer (HerBERT) on the
-PolEmo 2.0 dataset, and reports when each is worth it. Portfolio project A4 — NLP in Polish
+PolEmo 2.0 dataset, and reports when each is worth it. Portfolio project B4 — NLP in Polish
 plus modern deep learning (Hugging Face), with honest, methodical comparison.
 
 ## Architecture
@@ -84,41 +84,39 @@ uvicorn api.main:app --reload                                # POST /predict {"t
 python -m pl_review_sense.herbert --smoke
 ```
 
-<!-- code-review-graph MCP tools -->
-## MCP Tools: code-review-graph
+## The published page
 
-**IMPORTANT: This project has a knowledge graph. ALWAYS use the
-code-review-graph MCP tools BEFORE using Grep/Glob/Read to explore
-the codebase.** The graph is faster, cheaper (fewer tokens), and gives
-you structural context (callers, dependents, test coverage) that file
-scanning cannot.
+`docs/index.html` is one of twelve surfaces held to a single specification: ten house colour tokens
+with pinned per-theme values, a dark override, six card-metadata tags, a profile back-link, a
+result-shaped `h1`, and — since S4 — the rule that **every figure the surface prints is a figure
+a committed artifact prints**, never a rounding and never a re-derivation. The spec is
+`docs/audit/0007_divergence-and-the-page-spec.md` §5 in the private portfolio index, and
+`tools/pagespec` there sweeps all twelve from the submodule working trees on every push.
 
-### When to use graph tools FIRST
+That checker reads HTML and CSS, so it cannot see this repository's artifacts and cannot tell an
+exempt page from one nobody built tiles for. What it structurally cannot carry lives in
+`tests/test_palette.py` — the other half of the carrier, and the reason `docs/adr/0004_what-carries-the-page-spec.md`
+chose one checker plus local assertions over eleven vendored copies.
 
-- **Exploring code**: `semantic_search_nodes_tool` or `query_graph_tool` instead of Grep
-- **Understanding impact**: `get_impact_radius_tool` instead of manually tracing imports
-- **Code review**: `detect_changes_tool` + `get_review_context_tool` instead of reading entire files
-- **Finding relationships**: `query_graph_tool` with callers_of/callees_of/imports_of/tests_for
-- **Architecture questions**: `get_architecture_overview_tool` + `list_communities_tool`
+## Code intelligence
 
-Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
+Two indexes exist over this repo, and which one is reachable depends on where the session started:
 
-### Key Tools
+- `.codegraph/` — the `codegraph_explore` MCP tool, or `codegraph explore "<question>"` from a
+  shell. Returns the relevant symbols' verbatim source plus the call paths between them, so it
+  usually answers a "how does X work" or "what calls Y" question in one call. The CLI ships as
+  `codegraph.cmd`, so from Git Bash it needs the extension — bare `codegraph` resolves only
+  where PATHEXT applies.
+- `.code-review-graph/` — its MCP server is declared in **this repository's** `.mcp.json`, so it
+  loads when Claude Code runs with this directory as the working directory, and is simply absent
+  when the session started in the private portfolio index one level up. When its tools are
+  missing the CLI still works: `uvx code-review-graph <command>`.
 
-| Tool | Use when |
-| ------ | ---------- |
-| `detect_changes_tool` | Reviewing code changes — gives risk-scored analysis |
-| `get_review_context_tool` | Need source snippets for review — token-efficient |
-| `get_impact_radius_tool` | Understanding blast radius of a change |
-| `get_affected_flows_tool` | Finding which execution paths are impacted |
-| `query_graph_tool` | Tracing callers, callees, imports, tests, dependencies |
-| `semantic_search_nodes_tool` | Finding functions/classes by name or keyword |
-| `get_architecture_overview_tool` | Understanding high-level codebase structure |
-| `refactor_tool` | Planning renames, finding dead code |
+**Neither index has a hook**, so both are only as fresh as the last manual update — and a graph
+that predates the work you are looking at will answer confidently about code that is gone.
+`codegraph.cmd status` reports the index's age; `codegraph.cmd sync` brings it forward, and
+`uvx code-review-graph update` does the same for the other. Check before trusting either on a
+question about recent changes.
 
-### Workflow
-
-1. No hooks installed — run `code-review-graph update` after code changes.
-2. Use `detect_changes_tool` for code review.
-3. Use `get_affected_flows_tool` to understand impact.
-4. Use `query_graph_tool` pattern="tests_for" to check coverage.
+Grep, Glob and Read stay correct whenever the question is about text rather than structure, or
+when neither index is available.

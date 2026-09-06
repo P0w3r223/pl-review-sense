@@ -5,7 +5,7 @@
 **Polish-language review sentiment (3-class) — a classic TF-IDF baseline vs fine-tuning the
 HerBERT transformer**, on PolEmo 2.0, with an honest comparison of accuracy *and* cost.
 
-> Portfolio project A4. Demonstrates NLP in Polish and modern deep learning (Hugging Face),
+> Portfolio project B4. Demonstrates NLP in Polish and modern deep learning (Hugging Face),
 > plus methodological maturity: when a simple model is already enough, and when a transformer
 > earns its compute.
 
@@ -53,7 +53,7 @@ methodology (built locally from committed metrics; the data/models stay out of g
 **The transformer earns its compute here, and the paired test says so rather than the gap
 between two point estimates.** Both models answer the same 684 reviews; HerBERT is right on 38
 the baseline misses and wrong on 7 it gets, and an exact McNemar test over those 45
-disagreements gives *p* < 0.0001. Four times fewer errors, for roughly **850× the training
+disagreements gives *p* < 0.0001. Four times fewer errors, for roughly **927× the training
 time** and a card that is needed to serve as well as to train.
 
 **But you probably do not have to pay all of it.** The baseline's confidence ranks well enough
@@ -61,7 +61,7 @@ to route on, so a cascade — cheap model answers, least-confident share goes to
 reaches **0.980 macro-F1 by sending 20% of reviews to HerBERT**, which is 85% of everything the
 transformer adds for a fifth of the traffic it would otherwise serve.
 
-Per-class baseline F1: negative 0.95, neutral 0.97, positive 0.92. For scale, the floors on the
+Per-class baseline F1: negative 0.946, neutral 0.970, positive 0.916. For scale, the floors on the
 same test set: **always the majority class** scores 0.221 macro-F1 at 0.496 accuracy — half the
 reviews right, from a model that has learned nothing, which is the argument for the headline
 metric in one number.
