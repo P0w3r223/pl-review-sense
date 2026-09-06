@@ -18,7 +18,7 @@
      the 3:1 a non-text graphic needs, so a greyed bar read as a smudge; #5b93e4 clears it at
      3.12:1 while staying 1.66:1 from --accent, which is what keeps "muted" legible as muted. */
   --accent-soft: #5b93e4;
-  --positive: #059669;
+  --positive: #047857;
   --warn: #b45309;
   --radius: 10px;
 }
