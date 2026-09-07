@@ -2,7 +2,7 @@
 
 Date: 2026-08-18
 Status: accepted
-Author: P0w3r223
+Author: Piotr Cząstkiewicz
 Related to: [0001_page-is-a-function-of-committed-metrics.md](0001_page-is-a-function-of-committed-metrics.md)
 
 ---

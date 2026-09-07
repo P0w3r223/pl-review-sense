@@ -2,7 +2,7 @@
 
 Date: 2026-08-18
 Status: accepted
-Author: P0w3r223
+Author: Piotr Cząstkiewicz
 Related to: [0002_challenge-set-design.md](0002_challenge-set-design.md)
 
 ---
