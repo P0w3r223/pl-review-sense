@@ -2,7 +2,7 @@
 
 Date: 2026-08-18
 Status: accepted
-Author: P0w3r223
+Author: Piotr Cząstkiewicz
 Related to: [research/data-and-methodology.md](research/data-and-methodology.md)
 
 ---
