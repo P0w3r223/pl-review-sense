@@ -594,7 +594,13 @@ def test_no_cell_is_shaded_past_the_point_its_label_stays_readable():
     opacities = [float(v) for v in re.findall(r'fill-opacity="([0-9.]+)"', markup)]
     assert opacities, "the cells are shaded at all"
     assert max(opacities) <= charts._CELL_MAX_OPACITY
-    assert charts._CELL_MAX_OPACITY <= 0.55, "beyond this the dark scheme drops under 4.5:1"
+    # The reason attached to this bound was "beyond this the dark scheme drops under
+    # 4.5:1", and the crossing is at **0.587** dark and 0.777 light — measured, not 0.55.
+    # The pin is safe because it errs the conservative way, but a figure bolted to a
+    # bound has to be the figure, in a project whose rule is that they come from an
+    # instrument. `test_palette.py` is where the crossing is computed rather than typed.
+    assert charts._CELL_MAX_OPACITY <= 0.55, (
+        "the dark scheme crosses 4.5:1 at a cap of 0.587; 0.55 is that with headroom")
     assert "on-fill" not in markup, "one label colour, so there is no switch to get wrong"
 
 
