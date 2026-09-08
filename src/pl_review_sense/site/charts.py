@@ -85,8 +85,17 @@ def _text(value) -> str:
     return escape(str(value), quote=True)
 
 
-def _thousands(value: float) -> str:
-    return f"{value:,.0f}".replace(",", " ")
+def thousands(value: float) -> str:
+    """A count, grouped with U+202F -- `0007` §5 clause 8, and this page's one formatter.
+
+    Written as an escape rather than as the character, because the character is invisible
+    in a diff, a terminal and a `grep`: `car-price-ml` carried two byte-identical copies of
+    this function that differed only in which space they held, and no reader could see it.
+
+    Public, and `site/build.py` calls it. It was private and the KPI note inlined its own
+    copy of the format string -- the same drift one import removes.
+    """
+    return f"{value:,.0f}".replace(",", "\u202f")
 
 
 def _svg(width: int, height: int, title: str, body: str) -> str:
@@ -131,7 +140,7 @@ def bar_chart(
             f'<rect class="{"bar muted" if bar.muted else "bar"}" x="{label_width}" '
             f'y="{y + 3}" width="{bar_width:.1f}" height="{_ROW_HEIGHT - 9}" rx="2"></rect>'
             f'<text class="bar-value" x="{label_width + bar_width + 6:.1f}" y="{y + 13}">'
-            f"{_text(bar.value_text) if bar.value_text else _thousands(bar.value)}"
+            f"{_text(bar.value_text) if bar.value_text else thousands(bar.value)}"
             f"{_text(note)}</text>"
         )
     return _svg(width, height, f"{title} ({unit})", "".join(parts))
@@ -281,7 +290,7 @@ def curve_chart(
         drawn_at = position
         parts.append(
             f'<text class="axis" x="{position:.1f}" y="{_PLOT_BASELINE + 18}" '
-            f'text-anchor="middle">{_thousands(tick)}</text>'
+            f'text-anchor="middle">{thousands(tick)}</text>'
         )
     for point in points:
         parts.append(
@@ -291,7 +300,7 @@ def curve_chart(
     last = points[-1]
     parts.append(
         f'<text class="bar-value" x="{x_of(last.x):.1f}" y="{y_of(last.value) - 10:.1f}" '
-        f'text-anchor="end">{last.value:.3f} at n={_thousands(last.x)}</text>'
+        f'text-anchor="end">{last.value:.3f} at n={thousands(last.x)}</text>'
     )
     parts.append(
         f'<text class="axis" x="{_PLOT_LEFT}" y="{_PLOT_HEIGHT - 6}">{_text(x_caption)}</text>'

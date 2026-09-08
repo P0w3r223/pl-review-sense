@@ -287,7 +287,7 @@ def _kpis(
             value=f"{cost['train_seconds']:.0f} s" if cost else "—",
             note=(
                 f"{cost['model_bytes'] / 1e6:.1f} MB model, "
-                f"{cost['predict_rows_per_second']:,.0f} reviews/s".replace(",", " ")
+                f"{charts.thousands(cost['predict_rows_per_second'])} reviews/s"
                 if cost and cost.get("model_bytes")
                 else "not measured on this machine"
             ),
