@@ -112,10 +112,72 @@ def test_the_fraction_track_is_outlined_in_something_visible(scheme):
     assert contrast(palette["muted"], palette["bg"]) >= GRAPHIC_MINIMUM
 
 
+def _cell_label_roles() -> dict[str, str]:
+    """Which token each label on a confusion cell is drawn in, read from the stylesheet.
+
+    Read rather than typed, and that is the whole repair. The version of this test that named
+    `palette["text"]` in its assertion was checking the colour somebody remembered writing,
+    not the colour the page paints — so the second label could be given a different token and
+    the guard for *"one label colour"* would go on passing about the other one.
+    """
+    source = STYLESHEET.read_text(encoding="utf-8")
+    roles = {}
+    for name in ("cell-text", "cell-share"):
+        found = re.findall(r"\.chart \." + name + r"\s*\{[^}]*fill:\s*var\(--([\w-]+)\)", source)
+        assert found, f".chart .{name} declares no fill this test can read"
+        # **The last declaration, and the count asserted rather than assumed.** `re.search`
+        # returned the first, and this sheet's own idiom is that the dark block restates only
+        # what it changes — so appending
+        #
+        #     @media (prefers-color-scheme: dark) { .chart .cell-share { fill: var(--muted) } }
+        #
+        # left the whole suite green while dark mode painted 2.47:1 on the diagonal: the exact
+        # defect this test was written to close, one layer down. Measured, not imagined.
+        #
+        # Last-match models a within-block cascade and a later override; it does *not* model
+        # one token per scheme, so the count is asserted. This test resolves a single answer
+        # per label, and a sheet that gives two needs a per-scheme read rather than a guess.
+        assert len(set(found)) == 1, (
+            f".chart .{name} is declared {len(found)}× with {sorted(set(found))}: this test "
+            "resolves one token per label, so a per-scheme override needs a per-scheme read "
+            "and would otherwise be judged against whichever declaration came first")
+        roles[name] = found[-1]
+    return roles
+
+
 @pytest.mark.parametrize("scheme", SCHEMES)
 @pytest.mark.parametrize("share", [i / 20 for i in range(21)])
-def test_every_confusion_cell_keeps_its_count_readable(scheme, share):
-    """One label colour over a capped shading ramp, at every share a matrix can produce."""
+@pytest.mark.parametrize("label", ["cell-text", "cell-share"])
+@pytest.mark.parametrize("ground", ["bg", "surface"])
+def test_every_confusion_cell_keeps_both_its_labels_readable(scheme, share, label, ground):
+    """One label colour over a capped shading ramp, at every share a matrix can produce.
+
+    **`_CELL_MAX_OPACITY`'s comment and this test's own docstring both said *one* label
+    colour, and the cell carries two.** The count is `--text` and the share was `--muted`, so
+    the cap that keeps the count above 4.5:1 everywhere left the share failing on **three of the
+    nine cells — the whole diagonal — at 2.69, 2.71 and 2.77:1 light and 2.47, 2.47 and 2.59:1
+    dark. A live SC 1.4.3 failure on the published page, in both schemes, under a measurement
+    that had been taken and recorded and reached one of the two things it licensed. With both
+    labels on `--text` the worst cell is 7.01:1 light and 5.21:1 dark.
+
+    Found 2026-09-08 from the portfolio index, whose checker cannot see it either: the alpha
+    is a **presentation attribute** emitted per cell from the data, and `clause_1_composited`
+    reads CSS `opacity` and `color-mix()` only. Both carriers were looking at the stylesheet,
+    where the number is not.
+    """
     palette = PALETTES[scheme]
-    cell = composite(palette["accent"], palette["bg"], share * charts._CELL_MAX_OPACITY)
-    assert contrast(palette["text"], cell) >= TEXT_MINIMUM
+    role = _cell_label_roles()[label]
+    # Both grounds a chart can sit on here, because the one it sits on is a template decision
+    # and this file is not the template. Today `templates/index.html.j2` puts the matrix in a
+    # bare `<figure>`, so `--bg` is the live answer; moving it into a `.card`, a `<details>` or
+    # a `<pre>` makes it `--surface` and cuts the dark margin from 4.91 to 4.63 without any
+    # edit this test would otherwise see. Naming one ground is the same shape as naming one
+    # token, which is the defect this test was widened to close.
+    cell = composite(palette["accent"], palette[ground], share * charts._CELL_MAX_OPACITY)
+    ratio = contrast(palette[role], cell)
+    assert ratio >= TEXT_MINIMUM, (
+        f".{label} is --{role} on a cell shaded {share:.0%} of the ramp over --{ground}: "
+        f"{ratio:.2f}:1 against {TEXT_MINIMUM}:1. Either lower _CELL_MAX_OPACITY or draw this "
+        "label in a token that clears the whole ramp — the two labels have to share one "
+        "answer, because switching ink by density puts the worst contrast of the chart at the "
+        "switch.")

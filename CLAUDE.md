@@ -95,8 +95,11 @@ a committed artifact prints**, never a rounding and never a re-derivation. The s
 
 That checker reads HTML and CSS, so it cannot see this repository's artifacts and cannot tell an
 exempt page from one nobody built tiles for. What it structurally cannot carry lives in
-`tests/test_palette.py` — the other half of the carrier, and the reason `docs/adr/0004_what-carries-the-page-spec.md`
-chose one checker plus local assertions over eleven vendored copies.
+`tests/test_palette.py` — the other half of the carrier, and the reason **the portfolio index's**
+`docs/adr/0004_what-carries-the-page-spec.md` chose one checker plus local assertions over eleven
+vendored copies. *That path is in the private index, not in this repository's `docs/adr/`, which
+holds `0001` and `0002` — the paragraph above already qualifies `0007` that way and this one did
+not, so a reader following the argument landed on a dead path.*
 
 ## Code intelligence
 
