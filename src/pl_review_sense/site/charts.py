@@ -37,12 +37,18 @@ _PLOT_BASELINE = 200
 # Confusion matrix cells.
 _CELL_WIDTH = 104
 _CELL_HEIGHT = 58
-# The strongest a cell is shaded. The count sits *on* the cell, so the fill has to stay light
-# enough for one label colour to work at every share: a cell shaded to full accent needs pale
-# text, a pale cell needs dark text, and switching between them puts the worst contrast of the
-# whole chart right at the switch — 2.5:1 in the light scheme, measured. Capping the ramp
-# instead keeps a single label colour above 4.5:1 everywhere, in both colour schemes, and the
-# ordering the shading conveys survives being compressed.
+# The strongest a cell is shaded. **Two labels sit *on* the cell** — the count and the share —
+# so the fill has to stay light enough for one label colour to work at every share: a cell
+# shaded to full accent needs pale text, a pale cell needs dark text, and switching between them
+# puts the worst contrast of the whole chart right at the switch — 2.5:1 in the light scheme,
+# measured. Capping the ramp instead keeps a single label colour above 4.5:1 everywhere, in both
+# colour schemes, and the ordering the shading conveys survives being compressed.
+#
+# *This paragraph said "the count sits on the cell" and the cap was chosen for the count alone.
+# The share was drawn in `--muted` and measured **2.57:1 light, 2.33:1 dark** at this cap — a
+# live failure under a comment recording the measurement that should have caught it. Both labels
+# are `--text` now, and `test_every_confusion_cell_keeps_both_its_labels_readable` reads the two
+# tokens out of the stylesheet rather than naming one.*
 _CELL_MAX_OPACITY = 0.55
 
 

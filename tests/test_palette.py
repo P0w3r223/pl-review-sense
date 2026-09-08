@@ -112,10 +112,47 @@ def test_the_fraction_track_is_outlined_in_something_visible(scheme):
     assert contrast(palette["muted"], palette["bg"]) >= GRAPHIC_MINIMUM
 
 
+def _cell_label_roles() -> dict[str, str]:
+    """Which token each label on a confusion cell is drawn in, read from the stylesheet.
+
+    Read rather than typed, and that is the whole repair. The version of this test that named
+    `palette["text"]` in its assertion was checking the colour somebody remembered writing,
+    not the colour the page paints — so the second label could be given a different token and
+    the guard for *"one label colour"* would go on passing about the other one.
+    """
+    source = STYLESHEET.read_text(encoding="utf-8")
+    roles = {}
+    for name in ("cell-text", "cell-share"):
+        match = re.search(r"\.chart \." + name + r"\s*\{[^}]*fill:\s*var\(--([\w-]+)\)", source)
+        assert match, f".chart .{name} declares no fill this test can read"
+        roles[name] = match.group(1)
+    return roles
+
+
 @pytest.mark.parametrize("scheme", SCHEMES)
 @pytest.mark.parametrize("share", [i / 20 for i in range(21)])
-def test_every_confusion_cell_keeps_its_count_readable(scheme, share):
-    """One label colour over a capped shading ramp, at every share a matrix can produce."""
+@pytest.mark.parametrize("label", ["cell-text", "cell-share"])
+def test_every_confusion_cell_keeps_both_its_labels_readable(scheme, share, label):
+    """One label colour over a capped shading ramp, at every share a matrix can produce.
+
+    **`_CELL_MAX_OPACITY`'s comment and this test's own docstring both said *one* label
+    colour, and the cell carries two.** The count is `--text` and the share was `--muted`, so
+    the cap that keeps the count above 4.5:1 everywhere left the share at **2.69:1 light and
+    2.47:1 dark** on the densest cells this matrix actually produces — a live SC 1.4.3 failure
+    on the published page, in both schemes, under a measurement that had been taken and
+    recorded and reached one of the two things it licensed.
+
+    Found 2026-09-08 from the portfolio index, whose checker cannot see it either: the alpha
+    is a **presentation attribute** emitted per cell from the data, and `clause_1_composited`
+    reads CSS `opacity` and `color-mix()` only. Both carriers were looking at the stylesheet,
+    where the number is not.
+    """
     palette = PALETTES[scheme]
+    role = _cell_label_roles()[label]
     cell = composite(palette["accent"], palette["bg"], share * charts._CELL_MAX_OPACITY)
-    assert contrast(palette["text"], cell) >= TEXT_MINIMUM
+    ratio = contrast(palette[role], cell)
+    assert ratio >= TEXT_MINIMUM, (
+        f".{label} is --{role} on a cell shaded {share:.0%} of the ramp: {ratio:.2f}:1 "
+        f"against {TEXT_MINIMUM}:1. Either lower _CELL_MAX_OPACITY or draw this label in a "
+        "token that clears the whole ramp — the two labels have to share one answer, because "
+        "switching ink by density puts the worst contrast of the chart at the switch.")

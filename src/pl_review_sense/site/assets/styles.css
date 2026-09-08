@@ -167,7 +167,12 @@ figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 0.35rem; }
    precisely so that one colour clears 4.5:1 on every cell, in both schemes. */
 .chart .cell { fill: var(--accent); }
 .chart .cell-text { fill: var(--text); font-size: 12px; }
-.chart .cell-share { fill: var(--muted); font-size: 10px; }
+/* --text, not --muted, and the size is what carries the hierarchy instead. The cell it sits on
+   is shaded from the accent, so a quieter ink here is a quieter ink *on a coloured ground*:
+   --muted measured 2.57:1 light and 2.33:1 dark at the ramp's cap, against 4.5:1 for text this
+   size. The cap above was chosen so that one label colour clears 4.5 at every share — and this
+   was the second label, drawn in the other colour. */
+.chart .cell-share { fill: var(--text); font-size: 10px; }
 
 /* Tables scroll inside their own box, like the charts above. A table is never narrower than
    its columns need, so `width: 100%` cannot rescue one whose contents will not wrap. Preventive:
