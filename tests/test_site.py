@@ -652,7 +652,7 @@ def test_the_curve_marks_its_own_floor_and_the_last_point_it_plotted():
     )
 
     assert "0.75" in markup, "the cropped axis states where it starts"
-    assert "0.944 at n=5 264" in markup
+    assert "0.944 at n=5\u202f264" in markup
     assert markup.count('class="series-dot"') == 2
 
 
@@ -664,11 +664,11 @@ def test_the_curve_drops_ticks_that_would_be_drawn_over_each_other():
         y_floor=0.5,
         x_caption="labelled reviews",
     )
-    assert '>150</text>' in markup and ">4 800</text>" in markup
+    assert '>150</text>' in markup and ">4\u202f800</text>" in markup
     assert (
-        'text-anchor="middle">5 264</text>' not in markup
+        'text-anchor="middle">5\u202f264</text>' not in markup
     ), "on a log axis the last two sizes sit a few pixels apart; two numbers there read as neither"
-    assert "at n=5 264" in markup, "the point itself is still labelled"
+    assert "at n=5\u202f264" in markup, "the point itself is still labelled"
 
 
 def test_the_command_line_builds_the_page_where_it_is_told_to(tmp_path):
