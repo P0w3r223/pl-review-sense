@@ -5,7 +5,7 @@
 **Polish-language review sentiment (3-class) — a classic TF-IDF baseline vs fine-tuning the
 HerBERT transformer**, on PolEmo 2.0, with an honest comparison of accuracy *and* cost.
 
-> Portfolio project B4. Demonstrates NLP in Polish and modern deep learning (Hugging Face),
+> Portfolio project: NLP in Polish and modern deep learning (Hugging Face),
 > plus methodological maturity: when a simple model is already enough, and when a transformer
 > earns its compute.
 

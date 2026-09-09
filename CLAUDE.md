@@ -5,7 +5,7 @@ Guidance for Claude Code (and any contributor) working in this repository.
 ## What this project is
 A Polish-language review sentiment classifier that contrasts a classic approach
 (TF-IDF + logistic regression) with fine-tuning a Polish transformer (HerBERT) on the
-PolEmo 2.0 dataset, and reports when each is worth it. Portfolio project B4 — NLP in Polish
+PolEmo 2.0 dataset, and reports when each is worth it. Portfolio project — NLP in Polish
 plus modern deep learning (Hugging Face), with honest, methodical comparison.
 
 ## Architecture
