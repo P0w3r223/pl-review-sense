@@ -2,12 +2,16 @@
 
 [![CI](https://github.com/P0w3r223/pl-review-sense/actions/workflows/ci.yml/badge.svg)](https://github.com/P0w3r223/pl-review-sense/actions/workflows/ci.yml)
 
-**Polish-language review sentiment (3-class) — a classic TF-IDF baseline vs fine-tuning the
-HerBERT transformer**, on PolEmo 2.0, with an honest comparison of accuracy *and* cost.
+**Polish-language review sentiment (3-class) on PolEmo 2.0: a TF-IDF baseline against a fine-tuned
+HerBERT transformer, compared on accuracy and on cost.**
 
-> Portfolio project: NLP in Polish and modern deep learning (Hugging Face),
-> plus methodological maturity: when a simple model is already enough, and when a transformer
-> earns its compute.
+## Why a single score is not enough here
+
+The classes are imbalanced, so models are compared on macro-F1 against a majority-class floor of
+0.221, and the two models are compared on the reviews where they disagree: HerBERT is right on 38 the
+baseline misses and wrong on 7 it gets (McNemar p = 3.1e-06). A corpus score also stops describing
+short or ironic text: on an 80-sentence challenge set written for this project, the baseline gets
+48 right.
 
 ## What it does
 
